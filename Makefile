@@ -18,3 +18,7 @@ clean:
 	@find . -type d -name __pycache__ | xargs rm -r
 	@find . -type d -name .pytest_cache | xargs rm -r
 	@find . -type d -name .ruff_cache | xargs rm -r
+
+## format: format code
+format:
+	@ruff format .

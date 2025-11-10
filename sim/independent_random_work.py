@@ -6,18 +6,18 @@ import simpy
 
 NUM_WORKERS = 3
 SIMULATION_DURATION = 10
-JOB_ARRIVAL_RATE = 3
+TASK_ARRIVAL_RATE = 3
 
 
 def worker(env, worker_id):
-    """Worker with fixed-time jobs."""
-    job_id = 0
+    """Worker with fixed-time tasks."""
+    task_id = 0
     while True:
-        job_time = random.expovariate(1 / JOB_ARRIVAL_RATE)
-        print(f"{env.now:.2f}: W{worker_id} starts J{job_id} = {job_time:.2f}")
-        yield env.timeout(job_time)
-        print(f"{env.now:.2f}: W{worker_id} finishes J{job_id}")
-        job_id += 1
+        task_time = random.expovariate(1 / TASK_ARRIVAL_RATE)
+        print(f"{env.now:.2f}: W{worker_id} starts J{task_id} = {task_time:.2f}")
+        yield env.timeout(task_time)
+        print(f"{env.now:.2f}: W{worker_id} finishes J{task_id}")
+        task_id += 1
 
 
 def main(args):
