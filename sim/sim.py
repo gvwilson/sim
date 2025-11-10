@@ -6,10 +6,11 @@ import random
 import sys
 
 
-SCENARIOS = {
+SCENARIOS = [
     "independent_fixed_work",
     "independent_random_work",
-}
+    "shared_queue_worker_centric",
+]
 
 
 def main():
@@ -33,7 +34,7 @@ def main():
 def _parse_args():
     """Handle command-line arguments."""
     parser = argparse.ArgumentParser()
-    parser.add_argument("--scenario", choices=list(sorted(SCENARIOS)), required=True, help="scenario to run")
+    parser.add_argument("--scenario", choices=SCENARIOS, required=True, help="scenario to run")
     parser.add_argument("--seed", type=int, help="RNG seed")
     parser.add_argument("--verbose", type=int, default=0, help="logging level")
     return parser.parse_args()
