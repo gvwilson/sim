@@ -1,4 +1,4 @@
-"""A shared task queue with workers as processes."""
+"""A shared task queue with developers as processes."""
 
 import random
 
@@ -7,7 +7,7 @@ import simpy
 from util import TaskUniform
 
 
-NUM_WORKERS = 3
+NUM_DEVELOPERS = 3
 SIMULATION_DURATION = 20
 TASK_ARRIVAL_RATE = 3
 
@@ -24,14 +24,14 @@ def generate_tasks(env, queue):
         i += 1
 
 
-def worker(env, queue, worker_id):
+def developer(env, queue, developer_id):
     """Take tasks from the queue and do them."""
     while True:
-        print(f"{env.now:.2f}: {worker_id} waiting")
+        print(f"{env.now:.2f}: {developer_id} waiting")
         task = yield queue.get()
-        print(f"{env.now:.2f}: {worker_id} gets {task}")
+        print(f"{env.now:.2f}: {developer_id} gets {task}")
         yield env.timeout(task._duration)
-        print(f"{env.now:.2f}: {worker_id} completes {task}")
+        print(f"{env.now:.2f}: {developer_id} completes {task}")
 
 
 def main(args):
@@ -39,6 +39,6 @@ def main(args):
     env = simpy.Environment()
     queue = simpy.Store(env)
     env.process(generate_tasks(env, queue))
-    for i in range(NUM_WORKERS):
-        env.process(worker(env, queue, f"W{i}"))
+    for i in range(NUM_DEVELOPERS):
+        env.process(developer(env, queue, f"W{i}"))
     env.run(until=SIMULATION_DURATION)
