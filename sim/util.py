@@ -11,6 +11,7 @@ class TaskUniform:
     """Task with uniformly-distributed durations."""
 
     _id = 0
+    _kind = "task"
 
     def __init__(self, max_duration=MAX_TASK_DURATION):
         self._id = TaskUniform._id
@@ -25,6 +26,7 @@ class DeveloperUniform:
     """Developer with uniformly-distributed speed."""
 
     _id = 0
+    _kind = "developer"
 
     def __init__(self, max_speed=MAX_SPEED):
         self._id = DeveloperUniform._id
@@ -39,6 +41,7 @@ class TesterUniform:
     """Tester with uniformly-distributed speed."""
 
     _id = 0
+    _kind = "tester"
 
     def __init__(self, max_speed=MAX_SPEED):
         self._id = TesterUniform._id

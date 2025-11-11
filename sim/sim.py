@@ -16,6 +16,7 @@ SCENARIOS = [
     "two_stage_with_coordination",
     "two_stage_with_rework",
     "two_stage_refactored",
+    "two_stage_logging",
 ]
 
 

@@ -1,6 +1,8 @@
-"""Refactor to store assets in a class."""
+"""Add structured logging."""
 
+import csv
 import random
+import sys
 import simpy
 from util import TaskUniform, DeveloperUniform, TesterUniform
 
@@ -26,16 +28,28 @@ class Simulation:
         self.testers = simpy.FilterStore(self.env, capacity=num_testers)
         self.testers.items = [TesterUniform() for _ in range(num_testers)]
 
+        self._events = [("time", "subject", "subject_id", "verb", "object", "object_id")]
+
     @property
     def now(self):
         """Get time."""
         return self.env.now
 
+    def log(self, subj, verb, obj=None):
+        time = round(self.now, 2)
+        if obj is None:
+            self._events.append((time, subj._kind, subj._id, verb, None, None))
+        else:
+            self._events.append((time, subj._kind, subj._id, verb, obj._kind, obj._id))
+
+    def dump(self, stream=sys.stdout):
+        csv.writer(stream, lineterminator="\n").writerows(self._events)
+
 
 def simulate_task(sim, task):
     """Simulate a task flowing through the system."""
 
-    print(f"{sim.now:.2f}: {task} arrives")
+    sim.log(task, "arrives")
     developer = None
     tester = None
     while True:
@@ -43,24 +57,24 @@ def simulate_task(sim, task):
         tester = yield from simulate_coordination(sim, task, developer, tester)
         yield from simulate_testing(sim, tester, task)
         if random.uniform(0, 1) < BUG_PROBABILITY:
-            print(f"{sim.now:.2f}: {task} is buggy")
+            sim.log(task, "buggy")
         else:
-            print(f"{sim.now:.2f}: {task} is correct")
+            sim.log(task, "complete")
             break
 
 
 def simulate_development(sim, task, developer=None):
     """Simulate development."""
 
-    status = "starts" if developer is None else "resumes"
+    status = "development starts" if developer is None else "development resumes"
     if developer is None:
         developer = yield sim.devs.get()
     else:
         developer = yield sim.devs.get(lambda item: item._id == developer._id)
     actual_duration = task._duration / developer._speed
-    print(f"{sim.now:.2f}: development {task} {status} on {developer}")
+    sim.log(task, status, developer)
     yield sim.env.timeout(actual_duration)
-    print(f"{sim.now:.2f}: {task} finishes")
+    sim.log(task, "development finishes")
     yield sim.devs.put(developer)
     return developer
 
@@ -68,7 +82,7 @@ def simulate_development(sim, task, developer=None):
 def simulate_coordination(sim, task, developer, tester):
     """Simulate coordination of developer and a tester."""
 
-    print(f"{sim.now:.2f}: coordination for {task} starts")
+    sim.log(task, "coordination starts")
     temp = yield simpy.AllOf(
         sim.env,
         [sim.devs.get(lambda item: item._id == developer._id),
@@ -76,9 +90,10 @@ def simulate_coordination(sim, task, developer, tester):
     )
     developer = temp.events[0].value
     tester = temp.events[0].value
-    print(f"{sim.now:.2f}: coordination for {task} with {developer} and {tester}")
+    sim.log(task, "coordination", developer)
+    sim.log(task, "coordination", tester)
     yield sim.env.timeout(task._duration * HANDOFF_FRACTION)
-    print(f"{sim.now:.2f}: coordination for {task} ends")
+    sim.log(task, "coordination ends")
     yield sim.devs.put(developer)
     return tester
 
@@ -87,9 +102,9 @@ def simulate_testing(sim, tester, task):
     """Simulate testing with pre-selected tester."""
 
     actual_duration = task._duration / tester._speed
-    print(f"{sim.now:.2f}: testing {task} starts on {tester}")
+    sim.log(task, "testing starts", tester)
     yield sim.env.timeout(actual_duration)
-    print(f"{sim.now:.2f}: {task} finishes")
+    sim.log(task, "testing ends")
     yield sim.testers.put(tester)
 
 
@@ -107,3 +122,4 @@ def main(args):
     sim = Simulation(NUM_DEVELOPERS, NUM_TESTERS)
     sim.env.process(generate_tasks(sim))
     sim.env.run(until=SIMULATION_DURATION)
+    sim.dump()
