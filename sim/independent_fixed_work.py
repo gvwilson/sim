@@ -2,12 +2,14 @@
 
 import simpy
 
+
 NUM_DEVELOPERS = 3
 SIMULATION_DURATION = 10
 
 
 def developer(env, developer_id, task_time):
     """Developer with fixed-time tasks."""
+
     task_id = 0
     while True:
         print(f"{env.now:.2f}: W{developer_id} starts J{task_id}")
@@ -18,6 +20,7 @@ def developer(env, developer_id, task_time):
 
 def main(args):
     """Run simulation."""
+
     env = simpy.Environment()
     for i in range(NUM_DEVELOPERS):
         env.process(developer(env, i, i + 1))

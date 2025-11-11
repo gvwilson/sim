@@ -15,6 +15,7 @@ SCENARIOS = [
     "two_stage_no_coordination",
     "two_stage_with_coordination",
     "two_stage_with_rework",
+    "two_stage_refactored",
 ]
 
 
@@ -45,6 +46,7 @@ def main():
 
 def _parse_args():
     """Handle command-line arguments."""
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--all", action="store_true", help="run all scenarios")
     parser.add_argument("--scenario", choices=SCENARIOS, help="scenario to run")

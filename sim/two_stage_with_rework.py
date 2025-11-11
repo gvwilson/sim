@@ -1,9 +1,7 @@
 """Pools of developers and testers with handoff time."""
 
 import random
-
 import simpy
-
 from util import TaskUniform, DeveloperUniform, TesterUniform
 
 
@@ -17,6 +15,7 @@ BUG_PROBABILITY = 0.6
 
 def simulate_task(env, developers, testers, task):
     """Simulate a task flowing through the system."""
+
     print(f"{env.now:.2f}: {task} arrives")
     developer = None
     tester = None
@@ -33,6 +32,7 @@ def simulate_task(env, developers, testers, task):
 
 def simulate_development(env, developers, task, developer=None):
     """Simulate development."""
+
     status = "starts" if developer is None else "resumes"
     if developer is None:
         developer = yield developers.get()
@@ -48,6 +48,7 @@ def simulate_development(env, developers, task, developer=None):
 
 def simulate_coordination(env, developers, testers, task, developer, tester):
     """Simulate coordination of developer and a tester."""
+
     print(f"{env.now:.2f}: coordination for {task} starts")
     temp = yield simpy.AllOf(
         env,
@@ -65,6 +66,7 @@ def simulate_coordination(env, developers, testers, task, developer, tester):
 
 def simulate_testing(env, testers, tester, task):
     """Simulate testing with pre-selected tester."""
+
     actual_duration = task._duration / tester._speed
     print(f"{env.now:.2f}: testing {task} starts on {tester}")
     yield env.timeout(actual_duration)
@@ -74,6 +76,7 @@ def simulate_testing(env, testers, tester, task):
 
 def generate_tasks(env, developers, testers):
     """Generates tasks at random intervals."""
+
     while True:
         yield env.timeout(random.expovariate(1.0 / TASK_ARRIVAL_RATE))
         env.process(simulate_task(env, developers, testers, TaskUniform()))
@@ -81,6 +84,7 @@ def generate_tasks(env, developers, testers):
 
 def main(args):
     """Run simulation."""
+
     env = simpy.Environment()
 
     developers = simpy.FilterStore(env, capacity=NUM_DEVELOPERS)

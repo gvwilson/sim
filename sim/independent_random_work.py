@@ -1,8 +1,8 @@
 """Simulate developers running in parallel with no interaction."""
 
 import random
-
 import simpy
+
 
 NUM_DEVELOPERS = 3
 SIMULATION_DURATION = 10
@@ -11,6 +11,7 @@ TASK_ARRIVAL_RATE = 3
 
 def developer(env, developer_id):
     """Developer with fixed-time tasks."""
+
     task_id = 0
     while True:
         task_time = random.expovariate(1 / TASK_ARRIVAL_RATE)
@@ -22,6 +23,7 @@ def developer(env, developer_id):
 
 def main(args):
     """Run simulation."""
+
     env = simpy.Environment()
     for i in range(NUM_DEVELOPERS):
         env.process(developer(env, i))

@@ -1,9 +1,7 @@
 """A shared task queue with developers as processes."""
 
 import random
-
 import simpy
-
 from util import TaskUniform
 
 
@@ -14,6 +12,7 @@ TASK_ARRIVAL_RATE = 3
 
 def generate_tasks(env, queue):
     """Add tasks to the queue."""
+
     i = 0
     while True:
         arrival_wait = random.expovariate(1 / TASK_ARRIVAL_RATE)
@@ -26,6 +25,7 @@ def generate_tasks(env, queue):
 
 def developer(env, queue, developer_id):
     """Take tasks from the queue and do them."""
+
     while True:
         print(f"{env.now:.2f}: {developer_id} waiting")
         task = yield queue.get()
@@ -36,6 +36,7 @@ def developer(env, queue, developer_id):
 
 def main(args):
     """Run simulation."""
+
     env = simpy.Environment()
     queue = simpy.Store(env)
     env.process(generate_tasks(env, queue))
