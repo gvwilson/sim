@@ -13,7 +13,8 @@ SCENARIOS = [
     "developer_pool_task_process",
     "developer_pool_variable_speed",
     "two_stage_no_coordination",
-    "two_stage_fractional_coordination",
+    "two_stage_with_coordination",
+    "two_stage_with_rework",
 ]
 
 
