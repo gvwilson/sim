@@ -13,6 +13,7 @@ SCENARIOS = [
     "developer_pool_task_process",
     "developer_pool_variable_speed",
     "two_stage_no_coordination",
+    "two_stage_fractional_coordination",
 ]
 
 
@@ -45,9 +46,7 @@ def _parse_args():
     """Handle command-line arguments."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--all", action="store_true", help="run all scenarios")
-    parser.add_argument(
-        "--scenario", choices=SCENARIOS, required=True, help="scenario to run"
-    )
+    parser.add_argument("--scenario", choices=SCENARIOS, help="scenario to run")
     parser.add_argument("--seed", type=int, help="RNG seed")
     parser.add_argument("--verbose", type=int, default=0, help="logging level")
     return parser.parse_args()
