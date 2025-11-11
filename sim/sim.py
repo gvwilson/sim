@@ -11,6 +11,7 @@ SCENARIOS = [
     "independent_random_work",
     "task_queue_worker_process",
     "worker_pool_task_process",
+    "worker_pool_variable_speed",
 ]
 
 
