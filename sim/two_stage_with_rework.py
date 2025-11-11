@@ -56,7 +56,7 @@ def simulate_coordination(env, developers, testers, task, developer, tester):
          testers.get(lambda item: (tester is None) or (item._id == tester._id))]
     )
     developer = temp.events[0].value
-    tester = temp.events[0].value
+    tester = temp.events[1].value
     print(f"{env.now:.2f}: coordination for {task} with {developer} and {tester}")
     yield env.timeout(task._duration * HANDOFF_FRACTION)
     print(f"{env.now:.2f}: coordination for {task} ends")

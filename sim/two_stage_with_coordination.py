@@ -43,7 +43,7 @@ def simulate_coordination(env, developers, testers, task, developer_id):
          testers.get()]
     )
     developer = temp.events[0].value
-    tester = temp.events[0].value
+    tester = temp.events[1].value
     print(f"{env.now:.2f}: coordination for {task} with {developer} and {tester}")
     yield env.timeout(task._duration * HANDOFF_FRACTION)
     print(f"{env.now:.2f}: coordination for {task} ends")

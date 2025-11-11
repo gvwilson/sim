@@ -89,7 +89,7 @@ def simulate_coordination(sim, task, developer, tester):
          sim.testers.get(lambda item: (tester is None) or (item._id == tester._id))]
     )
     developer = temp.events[0].value
-    tester = temp.events[0].value
+    tester = temp.events[1].value
     sim.log(task, "coordination", developer)
     sim.log(task, "coordination", tester)
     yield sim.env.timeout(task._duration * HANDOFF_FRACTION)
