@@ -1,0 +1,9 @@
+{
+    "num_developers": 3,
+    "num_testers": 2,
+    "simulation_duration": 30,
+    "task_arrival_rate": 4,
+    "handoff_fraction": 0.1,
+    "rework_fraction": 0.6,
+    "seed": 67890
+}

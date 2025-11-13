@@ -1,5 +1,6 @@
-"""Add structured logging."""
+"""Calculate summary statistics from log."""
 
+from collections import Counter
 import csv
 import random
 import sys
@@ -21,7 +22,7 @@ class Simulation:
         self.testers = simpy.FilterStore(self.env, capacity=self.params["num_testers"])
         self.testers.items = [TesterUniform() for _ in range(self.params["num_testers"])]
 
-        self._events = [("time", "subject", "subject_id", "verb", "object", "object_id")]
+        self._events = []
 
     @property
     def now(self):
@@ -36,7 +37,9 @@ class Simulation:
             self._events.append((time, subj._kind, subj._id, verb, obj._kind, obj._id))
 
     def dump(self, stream=sys.stdout):
-        csv.writer(stream, lineterminator="\n").writerows(self._events)
+        header = ("time", "subject", "subject_id", "verb", "object", "object_id")
+        everything = [header, *self._events]
+        csv.writer(stream, lineterminator="\n").writerows(everything)
 
 
 def simulate_task(sim, task):
@@ -109,10 +112,28 @@ def generate_tasks(sim):
         sim.env.process(simulate_task(sim, TaskUniform()))
 
 
-def main(params):
+def calculate_statistics(sim):
+    """Calculate and display summary statistics."""
+    durations = {}
+    for (time, subj, subj_id, verb, obj, obj_id) in sim._events:
+        if verb == "arrives":
+            assert (subj == "task") and ((subj, subj_id) not in durations)
+            durations[(subj, subj_id)] = (False, time)
+        elif verb == "complete":
+            assert (subj == "task") and ((subj, subj_id) in durations)
+            durations[(subj, subj_id)] = (True, time - durations[(subj, subj_id)][1])
+    for ((subj, subj_id), (completed, time)) in sorted(durations.items()):
+        if completed:
+            print(f"{subj} {subj_id}: elapsed {time:.2f}")
+        else:
+            print(f"{subj} {subj_id}: incomplete {(sim.params["simulation_duration"] - time):.2f}")
+
+
+def main(sim):
     """Run simulation."""
 
-    sim = Simulation(params)
+    sim = Simulation(sim)
     sim.env.process(generate_tasks(sim))
     sim.env.run(until=sim.params["simulation_duration"])
-    sim.dump()
+
+    calculate_statistics(sim)

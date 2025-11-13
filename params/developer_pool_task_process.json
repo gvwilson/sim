@@ -1,0 +1,6 @@
+{
+    "num_developers": 3,
+    "simulation_duration": 10,
+    "task_arrival_rate": 4,
+    "seed": 67890
+}

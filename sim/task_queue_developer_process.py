@@ -5,17 +5,12 @@ import simpy
 from util import TaskUniform
 
 
-NUM_DEVELOPERS = 3
-SIMULATION_DURATION = 20
-TASK_ARRIVAL_RATE = 3
-
-
-def generate_tasks(env, queue):
+def generate_tasks(params, env, queue):
     """Add tasks to the queue."""
 
     i = 0
     while True:
-        arrival_wait = random.expovariate(1 / TASK_ARRIVAL_RATE)
+        arrival_wait = random.expovariate(1 / params["task_arrival_rate"])
         yield env.timeout(arrival_wait)
         task = TaskUniform()
         print(f"{env.now:.2f}: generator queueing {task}")
@@ -34,12 +29,12 @@ def developer(env, queue, developer_id):
         print(f"{env.now:.2f}: {developer_id} completes {task}")
 
 
-def main(args):
+def main(params):
     """Run simulation."""
 
     env = simpy.Environment()
     queue = simpy.Store(env)
-    env.process(generate_tasks(env, queue))
-    for i in range(NUM_DEVELOPERS):
+    env.process(generate_tasks(params, env, queue))
+    for i in range(params["num_developers"]):
         env.process(developer(env, queue, f"W{i}"))
-    env.run(until=SIMULATION_DURATION)
+    env.run(until=params["simulation_duration"])

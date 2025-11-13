@@ -5,11 +5,6 @@ import simpy
 from util import TaskUniform, DeveloperUniform
 
 
-NUM_DEVELOPERS = 3
-SIMULATION_DURATION = 20
-TASK_ARRIVAL_RATE = 3
-
-
 def simulate_task(env, developers, task):
     """Simulate a task flowing through the system."""
 
@@ -24,19 +19,19 @@ def simulate_task(env, developers, task):
     yield developers.put(developer)
 
 
-def generate_tasks(env, developers):
+def generate_tasks(params, env, developers):
     """Generates tasks at random intervals."""
 
     while True:
-        yield env.timeout(random.expovariate(1.0 / TASK_ARRIVAL_RATE))
+        yield env.timeout(random.expovariate(1.0 / params["task_arrival_rate"]))
         env.process(simulate_task(env, developers, TaskUniform()))
 
 
-def main(args):
+def main(params):
     """Run simulation."""
 
     env = simpy.Environment()
-    developers = simpy.Store(env, capacity=NUM_DEVELOPERS)
-    developers.items = [DeveloperUniform() for _ in range(NUM_DEVELOPERS)]
-    env.process(generate_tasks(env, developers))
-    env.run(until=SIMULATION_DURATION)
+    developers = simpy.Store(env, capacity=params["num_developers"])
+    developers.items = [DeveloperUniform() for _ in range(params["num_developers"])]
+    env.process(generate_tasks(params, env, developers))
+    env.run(until=params["simulation_duration"])

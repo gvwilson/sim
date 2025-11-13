@@ -2,6 +2,7 @@
 
 import argparse
 import importlib
+import json
 import random
 import sys
 
@@ -17,32 +18,49 @@ SCENARIOS = [
     "two_stage_with_rework",
     "two_stage_refactored",
     "two_stage_logging",
+    "summary_statistics",
 ]
+
+PARAMETERS = {
+    "num_developers": 3,
+    "num_testers": 2,
+    "simulation_duration": 30,
+    "task_arrival_rate": 4,
+    "handoff_fraction": 0.1,
+    "rework_fraction": 0.6,
+    "seed": 67890
+}
 
 
 def main():
     args = _parse_args()
-
-    if args.seed is not None:
-        random.seed(args.seed)
+    params = _load_parameters(args)
+    random.seed(params["seed"])
 
     if args.all:
         scenarios = SCENARIOS
-
     elif args.scenario is None:
         print("no scenario specified (use --scenario [name])", file=sys.stderr)
         sys.exit(1)
-
     else:
         scenarios = [args.scenario]
 
     for sc in scenarios:
         try:
             module = importlib.import_module(sc)
-            module.main(args)
+            module.main(params)
         except ImportError as exc:
             print(exc, file=sys.stderr)
             sys.exit(1)
+
+
+def _load_parameters(args):
+    """Get simulation parameters."""
+    params = PARAMETERS.copy()
+    if args.parameters is not None:
+        with open(args.parameters, "r") as reader:
+            params.update(json.load(reader))
+    return params
 
 
 def _parse_args():
@@ -50,8 +68,8 @@ def _parse_args():
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--all", action="store_true", help="run all scenarios")
+    parser.add_argument("--parameters", type=str, help="parameter file")
     parser.add_argument("--scenario", choices=SCENARIOS, help="scenario to run")
-    parser.add_argument("--seed", type=int, help="RNG seed")
     parser.add_argument("--verbose", type=int, default=0, help="logging level")
     return parser.parse_args()
 

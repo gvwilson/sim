@@ -5,26 +5,19 @@ import simpy
 from util import TaskUniform, DeveloperUniform, TesterUniform
 
 
-NUM_DEVELOPERS = 3
-NUM_TESTERS = 2
-SIMULATION_DURATION = 20
-TASK_ARRIVAL_RATE = 3
-HANDOFF_FRACTION = 0.1
-BUG_PROBABILITY = 0.6
-
-
 class Simulation:
     """Store assets."""
 
-    def __init__(self, num_developers, num_testers):
+    def __init__(self, params):
         """Construct."""
+        self.params = params
         self.env = simpy.Environment()
 
-        self.devs = simpy.FilterStore(self.env, capacity=num_developers)
-        self.devs.items = [DeveloperUniform() for _ in range(num_developers)]
+        self.devs = simpy.FilterStore(self.env, capacity=self.params["num_developers"])
+        self.devs.items = [DeveloperUniform() for _ in range(self.params["num_developers"])]
 
-        self.testers = simpy.FilterStore(self.env, capacity=num_testers)
-        self.testers.items = [TesterUniform() for _ in range(num_testers)]
+        self.testers = simpy.FilterStore(self.env, capacity=self.params["num_testers"])
+        self.testers.items = [TesterUniform() for _ in range(self.params["num_testers"])]
 
     @property
     def now(self):
@@ -42,7 +35,7 @@ def simulate_task(sim, task):
         developer = yield from simulate_development(sim, task, developer)
         tester = yield from simulate_coordination(sim, task, developer, tester)
         yield from simulate_testing(sim, tester, task)
-        if random.uniform(0, 1) < BUG_PROBABILITY:
+        if random.uniform(0, 1) < sim.params["rework_fraction"]:
             print(f"{sim.now:.2f}: {task} is buggy")
         else:
             print(f"{sim.now:.2f}: {task} is correct")
@@ -77,7 +70,7 @@ def simulate_coordination(sim, task, developer, tester):
     developer = temp.events[0].value
     tester = temp.events[1].value
     print(f"{sim.now:.2f}: coordination for {task} with {developer} and {tester}")
-    yield sim.env.timeout(task._duration * HANDOFF_FRACTION)
+    yield sim.env.timeout(task._duration * sim.params["handoff_fraction"])
     print(f"{sim.now:.2f}: coordination for {task} ends")
     yield sim.devs.put(developer)
     return tester
@@ -97,13 +90,13 @@ def generate_tasks(sim):
     """Generates tasks at random intervals."""
 
     while True:
-        yield sim.env.timeout(random.expovariate(1.0 / TASK_ARRIVAL_RATE))
+        yield sim.env.timeout(random.expovariate(1.0 / sim.params["task_arrival_rate"]))
         sim.env.process(simulate_task(sim, TaskUniform()))
 
 
-def main(args):
+def main(params):
     """Run simulation."""
 
-    sim = Simulation(NUM_DEVELOPERS, NUM_TESTERS)
+    sim = Simulation(params)
     sim.env.process(generate_tasks(sim))
-    sim.env.run(until=SIMULATION_DURATION)
+    sim.env.run(until=sim.params["simulation_duration"])

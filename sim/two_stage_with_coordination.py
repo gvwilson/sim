@@ -5,19 +5,12 @@ import simpy
 from util import TaskUniform, DeveloperUniform, TesterUniform
 
 
-NUM_DEVELOPERS = 3
-NUM_TESTERS = 2
-SIMULATION_DURATION = 20
-TASK_ARRIVAL_RATE = 3
-HANDOFF_FRACTION = 0.1
-
-
-def simulate_task(env, developers, testers, task):
+def simulate_task(params, env, developers, testers, task):
     """Simulate a task flowing through the system."""
 
     print(f"{env.now:.2f}: {task} arrives")
     developer = yield from simulate_development(env, developers, task)
-    tester = yield from simulate_coordination(env, developers, testers, task, developer._id)
+    tester = yield from simulate_coordination(params, env, developers, testers, task, developer._id)
     yield from simulate_testing(env, testers, tester, task)
 
 
@@ -33,7 +26,7 @@ def simulate_development(env, developers, task):
     return developer
 
 
-def simulate_coordination(env, developers, testers, task, developer_id):
+def simulate_coordination(params, env, developers, testers, task, developer_id):
     """Simulate coordination of developer and a tester."""
 
     print(f"{env.now:.2f}: coordination for {task} starts")
@@ -45,7 +38,7 @@ def simulate_coordination(env, developers, testers, task, developer_id):
     developer = temp.events[0].value
     tester = temp.events[1].value
     print(f"{env.now:.2f}: coordination for {task} with {developer} and {tester}")
-    yield env.timeout(task._duration * HANDOFF_FRACTION)
+    yield env.timeout(task._duration * params["handoff_fraction"])
     print(f"{env.now:.2f}: coordination for {task} ends")
     yield developers.put(developer)
     return tester
@@ -61,24 +54,24 @@ def simulate_testing(env, testers, tester, task):
     yield testers.put(tester)
 
 
-def generate_tasks(env, developers, testers):
+def generate_tasks(params, env, developers, testers):
     """Generates tasks at random intervals."""
 
     while True:
-        yield env.timeout(random.expovariate(1.0 / TASK_ARRIVAL_RATE))
-        env.process(simulate_task(env, developers, testers, TaskUniform()))
+        yield env.timeout(random.expovariate(1.0 / params["task_arrival_rate"]))
+        env.process(simulate_task(params, env, developers, testers, TaskUniform()))
 
 
-def main(args):
+def main(params):
     """Run simulation."""
 
     env = simpy.Environment()
 
-    developers = simpy.FilterStore(env, capacity=NUM_DEVELOPERS)
-    developers.items = [DeveloperUniform() for _ in range(NUM_DEVELOPERS)]
+    developers = simpy.FilterStore(env, capacity=params["num_developers"])
+    developers.items = [DeveloperUniform() for _ in range(params["num_developers"])]
 
-    testers = simpy.FilterStore(env, capacity=NUM_TESTERS)
-    testers.items = [TesterUniform() for _ in range(NUM_TESTERS)]
+    testers = simpy.FilterStore(env, capacity=params["num_testers"])
+    testers.items = [TesterUniform() for _ in range(params["num_testers"])]
 
-    env.process(generate_tasks(env, developers, testers))
-    env.run(until=SIMULATION_DURATION)
+    env.process(generate_tasks(params, env, developers, testers))
+    env.run(until=params["simulation_duration"])
