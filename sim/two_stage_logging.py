@@ -16,12 +16,18 @@ class Simulation:
         self.env = simpy.Environment()
 
         self.devs = simpy.FilterStore(self.env, capacity=self.params["num_developers"])
-        self.devs.items = [DeveloperUniform() for _ in range(self.params["num_developers"])]
+        self.devs.items = [
+            DeveloperUniform() for _ in range(self.params["num_developers"])
+        ]
 
         self.testers = simpy.FilterStore(self.env, capacity=self.params["num_testers"])
-        self.testers.items = [TesterUniform() for _ in range(self.params["num_testers"])]
+        self.testers.items = [
+            TesterUniform() for _ in range(self.params["num_testers"])
+        ]
 
-        self._events = [("time", "subject", "subject_id", "verb", "object", "object_id")]
+        self._events = [
+            ("time", "subject", "subject_id", "verb", "object", "object_id")
+        ]
 
     @property
     def now(self):
@@ -78,8 +84,10 @@ def simulate_coordination(sim, task, developer, tester):
     sim.log(task, "coordination starts")
     temp = yield simpy.AllOf(
         sim.env,
-        [sim.devs.get(lambda item: item._id == developer._id),
-         sim.testers.get(lambda item: (tester is None) or (item._id == tester._id))]
+        [
+            sim.devs.get(lambda item: item._id == developer._id),
+            sim.testers.get(lambda item: (tester is None) or (item._id == tester._id)),
+        ],
     )
     developer = temp.events[0].value
     tester = temp.events[1].value

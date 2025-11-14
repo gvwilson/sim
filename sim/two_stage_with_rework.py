@@ -13,7 +13,9 @@ def simulate_task(params, env, developers, testers, task):
     tester = None
     while True:
         developer = yield from simulate_development(env, developers, task, developer)
-        tester = yield from simulate_coordination(params, env, developers, testers, task, developer, tester)
+        tester = yield from simulate_coordination(
+            params, env, developers, testers, task, developer, tester
+        )
         yield from simulate_testing(env, testers, tester, task)
         if random.uniform(0, 1) < params["rework_fraction"]:
             print(f"{env.now:.2f}: {task} is buggy")
@@ -44,8 +46,10 @@ def simulate_coordination(params, env, developers, testers, task, developer, tes
     print(f"{env.now:.2f}: coordination for {task} starts")
     temp = yield simpy.AllOf(
         env,
-        [developers.get(lambda item: item._id == developer._id),
-         testers.get(lambda item: (tester is None) or (item._id == tester._id))]
+        [
+            developers.get(lambda item: item._id == developer._id),
+            testers.get(lambda item: (tester is None) or (item._id == tester._id)),
+        ],
     )
     developer = temp.events[0].value
     tester = temp.events[1].value

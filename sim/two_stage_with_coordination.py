@@ -10,7 +10,9 @@ def simulate_task(params, env, developers, testers, task):
 
     print(f"{env.now:.2f}: {task} arrives")
     developer = yield from simulate_development(env, developers, task)
-    tester = yield from simulate_coordination(params, env, developers, testers, task, developer._id)
+    tester = yield from simulate_coordination(
+        params, env, developers, testers, task, developer._id
+    )
     yield from simulate_testing(env, testers, tester, task)
 
 
@@ -31,9 +33,7 @@ def simulate_coordination(params, env, developers, testers, task, developer_id):
 
     print(f"{env.now:.2f}: coordination for {task} starts")
     temp = yield simpy.AllOf(
-        env,
-        [developers.get(lambda item: item._id == developer_id),
-         testers.get()]
+        env, [developers.get(lambda item: item._id == developer_id), testers.get()]
     )
     developer = temp.events[0].value
     tester = temp.events[1].value

@@ -13,7 +13,9 @@ def simulate_task(env, developers, task):
     developer = yield developers.get()
     actual_duration = task._duration / developer._speed
     delay = env.now - request_start
-    print(f"{env.now:.2f}: {task} starts on {developer} after delay {delay:.2f} duration {actual_duration:.2f}")
+    print(
+        f"{env.now:.2f}: {task} starts on {developer} after delay {delay:.2f} duration {actual_duration:.2f}"
+    )
     yield env.timeout(actual_duration)
     print(f"{env.now:.2f}: {task} finishes")
     yield developers.put(developer)

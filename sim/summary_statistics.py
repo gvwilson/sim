@@ -1,6 +1,5 @@
 """Calculate summary statistics from log."""
 
-from collections import Counter
 import csv
 import random
 import sys
@@ -17,10 +16,14 @@ class Simulation:
         self.env = simpy.Environment()
 
         self.devs = simpy.FilterStore(self.env, capacity=self.params["num_developers"])
-        self.devs.items = [DeveloperUniform() for _ in range(self.params["num_developers"])]
+        self.devs.items = [
+            DeveloperUniform() for _ in range(self.params["num_developers"])
+        ]
 
         self.testers = simpy.FilterStore(self.env, capacity=self.params["num_testers"])
-        self.testers.items = [TesterUniform() for _ in range(self.params["num_testers"])]
+        self.testers.items = [
+            TesterUniform() for _ in range(self.params["num_testers"])
+        ]
 
         self._events = []
 
@@ -81,8 +84,10 @@ def simulate_coordination(sim, task, developer, tester):
     sim.log(task, "coordination starts")
     temp = yield simpy.AllOf(
         sim.env,
-        [sim.devs.get(lambda item: item._id == developer._id),
-         sim.testers.get(lambda item: (tester is None) or (item._id == tester._id))]
+        [
+            sim.devs.get(lambda item: item._id == developer._id),
+            sim.testers.get(lambda item: (tester is None) or (item._id == tester._id)),
+        ],
     )
     developer = temp.events[0].value
     tester = temp.events[1].value
@@ -115,18 +120,20 @@ def generate_tasks(sim):
 def calculate_statistics(sim):
     """Calculate and display summary statistics."""
     durations = {}
-    for (time, subj, subj_id, verb, obj, obj_id) in sim._events:
+    for time, subj, subj_id, verb, obj, obj_id in sim._events:
         if verb == "arrives":
             assert (subj == "task") and ((subj, subj_id) not in durations)
             durations[(subj, subj_id)] = (False, time)
         elif verb == "complete":
             assert (subj == "task") and ((subj, subj_id) in durations)
             durations[(subj, subj_id)] = (True, time - durations[(subj, subj_id)][1])
-    for ((subj, subj_id), (completed, time)) in sorted(durations.items()):
+    for (subj, subj_id), (completed, time) in sorted(durations.items()):
         if completed:
             print(f"{subj} {subj_id}: elapsed {time:.2f}")
         else:
-            print(f"{subj} {subj_id}: incomplete {(sim.params["simulation_duration"] - time):.2f}")
+            print(
+                f"{subj} {subj_id}: incomplete {(sim.params['simulation_duration'] - time):.2f}"
+            )
 
 
 def main(sim):
