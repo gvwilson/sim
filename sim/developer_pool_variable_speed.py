@@ -26,7 +26,7 @@ def generate_tasks(params, env, developers):
 
     while True:
         yield env.timeout(random.expovariate(1.0 / params["task_arrival_rate"]))
-        env.process(simulate_task(env, developers, TaskUniform()))
+        env.process(simulate_task(env, developers, TaskUniform(params)))
 
 
 def main(params):
@@ -34,6 +34,6 @@ def main(params):
 
     env = simpy.Environment()
     developers = simpy.Store(env, capacity=params["num_developers"])
-    developers.items = [DeveloperUniform() for _ in range(params["num_developers"])]
+    developers.items = [DeveloperUniform(params) for _ in range(params["num_developers"])]
     env.process(generate_tasks(params, env, developers))
     env.run(until=params["simulation_duration"])

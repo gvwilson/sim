@@ -15,12 +15,12 @@ class Simulation:
 
         self.devs = simpy.FilterStore(self.env, capacity=self.params["num_developers"])
         self.devs.items = [
-            DeveloperUniform() for _ in range(self.params["num_developers"])
+            DeveloperUniform(params) for _ in range(self.params["num_developers"])
         ]
 
         self.testers = simpy.FilterStore(self.env, capacity=self.params["num_testers"])
         self.testers.items = [
-            TesterUniform() for _ in range(self.params["num_testers"])
+            TesterUniform(params) for _ in range(self.params["num_testers"])
         ]
 
     @property
@@ -97,7 +97,7 @@ def generate_tasks(sim):
 
     while True:
         yield sim.env.timeout(random.expovariate(1.0 / sim.params["task_arrival_rate"]))
-        sim.env.process(simulate_task(sim, TaskUniform()))
+        sim.env.process(simulate_task(sim, TaskUniform(sim.params)))
 
 
 def main(params):

@@ -1,5 +1,8 @@
 # Runnable tasks.
 
+NOT_SIMULATIONS=__init__ sim util
+SIMULATIONS=$(filter-out ${NOT_SIMULATIONS},$(patsubst sim/%.py,%,$(wildcard sim/*.py)))
+
 all: commands
 
 ## commands: show available commands (*)
@@ -22,3 +25,10 @@ clean:
 ## format: format code
 format:
 	@ruff format .
+
+## individual: test each simulation individually
+individual:
+	@for stem in ${SIMULATIONS}; do \
+	  echo "========" $${stem}; \
+	  python sim/sim.py --scenario $${stem} --parameters params/$${stem}.json; \
+	done

@@ -12,7 +12,7 @@ def generate_tasks(params, env, queue):
     while True:
         arrival_wait = random.expovariate(1 / params["task_arrival_rate"])
         yield env.timeout(arrival_wait)
-        task = TaskUniform()
+        task = TaskUniform(params)
         print(f"{env.now:.2f}: generator queueing {task}")
         queue.put(task)
         i += 1

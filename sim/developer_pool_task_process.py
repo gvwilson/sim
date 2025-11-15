@@ -22,7 +22,7 @@ def generate_tasks(params, env, developers):
 
     while True:
         yield env.timeout(random.expovariate(1.0 / params["task_arrival_rate"]))
-        env.process(simulate_task(env, developers, TaskUniform()))
+        env.process(simulate_task(env, developers, TaskUniform(params)))
 
 
 def main(params):
