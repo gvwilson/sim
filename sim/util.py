@@ -4,10 +4,6 @@ from itertools import count
 import random
 
 
-MAX_TASK_DURATION = 5
-MAX_SPEED = 4
-
-
 class TaskUniform:
     """Task with uniformly-distributed durations."""
 

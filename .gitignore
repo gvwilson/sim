@@ -15,3 +15,12 @@ coverage.json
 
 # Emacs
 *~
+
+# VS Code
+.vscode
+
+# MacOS
+.DS_store
+
+# Junk
+tmp/

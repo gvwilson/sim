@@ -15,6 +15,9 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
 ]
 dependencies = [
+    "kaleido>=1.2.0",
+    "plotly[express]>=6.5.0",
+    "polars>=1.35.2",
     "simpy>=4.0.1",
 ]
 

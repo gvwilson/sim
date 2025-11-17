@@ -119,6 +119,8 @@ def generate_tasks(sim):
 
 def calculate_statistics(sim):
     """Calculate and display summary statistics."""
+
+    # Collect task durations.
     durations = {}
     for time, subj, subj_id, verb, obj, obj_id in sim._events:
         if verb == "arrives":
@@ -126,14 +128,17 @@ def calculate_statistics(sim):
             durations[(subj, subj_id)] = (False, time)
         elif verb == "complete":
             assert (subj == "task") and ((subj, subj_id) in durations)
-            durations[(subj, subj_id)] = (True, time - durations[(subj, subj_id)][1])
-    for (subj, subj_id), (completed, time) in sorted(durations.items()):
+            elapsed = time - durations[(subj, subj_id)][1]
+            durations[(subj, subj_id)] = (True, elapsed)
+
+    # Report.
+    results = [("subject", "subject_id", "verb", "time")]
+    for (subj, subj_id), (completed, elapsed) in sorted(durations.items()):
         if completed:
-            print(f"{subj} {subj_id}: elapsed {time:.2f}")
+            results.append((subj, subj_id, "elapsed", round(elapsed, 2)))
         else:
-            print(
-                f"{subj} {subj_id}: incomplete {(sim.params['simulation_duration'] - time):.2f}"
-            )
+            results.append((subj, subj_id, "incomplete", None))
+    csv.writer(sys.stdout, lineterminator="\n").writerows(results)
 
 
 def main(sim):

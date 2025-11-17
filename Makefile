@@ -32,3 +32,9 @@ individual:
 	  echo "========" $${stem}; \
 	  python sim/sim.py --scenario $${stem} --parameters params/$${stem}.json; \
 	done
+
+## fig/summary_statistics.svg: generate histogram of summary statistics
+fig/summary_statistics.svg: sim/summary_statistics.py sim/util.py sim/summary_statistics_plot.py params/summary_statistics_long.json
+	@mkdir -p fig tmp
+	@python sim/sim.py --scenario summary_statistics --parameters params/summary_statistics_long.json > tmp/summary_statistics_long.csv
+	@python sim/summary_statistics_plot.py tmp/summary_statistics_long.csv $@

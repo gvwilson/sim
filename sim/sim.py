@@ -26,9 +26,12 @@ PARAMETERS = {
     "num_testers": 2,
     "simulation_duration": 30,
     "task_arrival_rate": 4,
+    "max_task_duration": 5,
+    "max_developer_speed": 4,
+    "max_tester_speed": 3,
     "handoff_fraction": 0.1,
     "rework_fraction": 0.6,
-    "seed": 67890,
+    "seed": 67890
 }
 
 
