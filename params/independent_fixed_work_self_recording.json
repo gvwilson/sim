@@ -1,0 +1,8 @@
+{
+    "num_developers": 3,
+    "simulation_duration": 5000,
+    "task_arrival_rate": 4,
+    "max_task_duration": 1,
+    "max_developer_speed": 1,
+    "seed": 67890
+}

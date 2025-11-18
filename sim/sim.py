@@ -20,6 +20,7 @@ SCENARIOS = [
     "two_stage_logging",
     "summary_statistics",
     "self_recording",
+    "independent_fixed_work_self_recording",
 ]
 
 PARAMETERS = {

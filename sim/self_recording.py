@@ -1,10 +1,9 @@
 """Calculate summary statistics from self-recording objects."""
 
-import csv
 import random
 import sys
 import simpy
-from util import TaskRecord, DeveloperRecord, TesterRecord
+from util import TaskRecord, DeveloperRecord, TesterRecord, show_log
 
 
 class Simulation:
@@ -24,8 +23,6 @@ class Simulation:
         self.testers.items = [
             TesterRecord(params) for _ in range(self.params["num_testers"])
         ]
-
-        self._events = []
 
     @property
     def now(self):
@@ -51,7 +48,6 @@ def simulate_task(sim, task):
 def simulate_development(sim, task, developer=None):
     """Simulate development."""
 
-    status = "development starts" if developer is None else "development resumes"
     if developer is None:
         developer = yield sim.devs.get()
     else:
@@ -104,24 +100,15 @@ def generate_tasks(sim):
         sim.env.process(simulate_task(sim, task))
 
 
-def get_log(kind, things):
-    return [
-        (kind, x._id, x._current is None, round(x._elapsed, 2))
-        for x in things
-    ]
-
-
-def main(sim):
+def main(params):
     """Run simulation."""
 
-    sim = Simulation(sim)
+    sim = Simulation(params)
     sim.env.process(generate_tasks(sim))
     sim.env.run(until=sim.params["simulation_duration"])
-
-    log = [
-        ("kind", "id", "completed", "elapsed"),
-        *get_log("task", TaskRecord._all),
-        *get_log("dev", DeveloperRecord._all),
-        *get_log("tester", TesterRecord._all),
-    ]
-    csv.writer(sys.stdout, lineterminator="\n").writerows(log)
+    show_log(
+        sys.stdout,
+        ("task", TaskRecord._all),
+        ("dev", DeveloperRecord._all),
+        ("tester", TesterRecord._all),
+    )

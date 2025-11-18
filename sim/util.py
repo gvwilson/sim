@@ -1,6 +1,7 @@
 """Shared code."""
 
 from itertools import count
+import csv
 import random
 
 
@@ -95,3 +96,21 @@ class TesterRecord(TesterUniform, Recorder):
         super().__init__(params)
         Recorder.__init__(self)
         TesterRecord._all.append(self)
+
+
+def get_log(kind, things):
+    individual = [
+        (kind, x._id, x._current is None, round(x._elapsed, 2))
+        for x in things
+    ]
+    total = sum(x._elapsed for x in things)
+    return individual, round(total, 2)
+
+
+def show_log(stream, *what):
+    log = [("kind", "id", "completed", "elapsed")]
+    for (name, data) in what:
+        individual, total = get_log(name, data)
+        log.append((name, "total", None, total))
+        log.extend(individual)
+    csv.writer(stream, lineterminator="\n").writerows(log)

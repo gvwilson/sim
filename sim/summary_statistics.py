@@ -141,10 +141,10 @@ def calculate_statistics(sim):
     csv.writer(sys.stdout, lineterminator="\n").writerows(results)
 
 
-def main(sim):
+def main(params):
     """Run simulation."""
 
-    sim = Simulation(sim)
+    sim = Simulation(params)
     sim.env.process(generate_tasks(sim))
     sim.env.run(until=sim.params["simulation_duration"])
 
