@@ -49,7 +49,9 @@ def main(params):
     env = simpy.Environment()
 
     developers = simpy.Store(env, capacity=params["num_developers"])
-    developers.items = [DeveloperUniform(params) for _ in range(params["num_developers"])]
+    developers.items = [
+        DeveloperUniform(params) for _ in range(params["num_developers"])
+    ]
 
     testers = simpy.Store(env, capacity=params["num_testers"])
     testers.items = [TesterUniform(params) for _ in range(params["num_testers"])]

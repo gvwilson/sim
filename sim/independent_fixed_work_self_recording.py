@@ -38,7 +38,7 @@ def simulate_task(sim, task):
     """Simulate a task flowing through the system."""
 
     task.start(sim)
-    developer = yield from simulate_development(sim, task)
+    yield from simulate_development(sim, task)
     task.end(sim)
 
 
@@ -51,7 +51,6 @@ def simulate_development(sim, task):
     yield sim.env.timeout(task._actual)
     developer.end(sim)
     yield sim.devs.put(developer)
-    return developer
 
 
 def main(params):
@@ -61,7 +60,7 @@ def main(params):
     sim.env.process(generate_tasks(sim))
     sim.env.run(until=sim.params["simulation_duration"])
     show_log(
-        sys.stdout, 
+        sys.stdout,
         ("task", TaskRecord._all),
         ("dev", DeveloperRecord._all),
     )

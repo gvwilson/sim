@@ -33,7 +33,7 @@ PARAMETERS = {
     "max_tester_speed": 3,
     "handoff_fraction": 0.1,
     "rework_fraction": 0.6,
-    "seed": 67890
+    "seed": 67890,
 }
 
 

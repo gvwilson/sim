@@ -100,8 +100,7 @@ class TesterRecord(TesterUniform, Recorder):
 
 def get_log(kind, things):
     individual = [
-        (kind, x._id, x._current is None, round(x._elapsed, 2))
-        for x in things
+        (kind, x._id, x._current is None, round(x._elapsed, 2)) for x in things
     ]
     total = sum(x._elapsed for x in things)
     return individual, round(total, 2)
@@ -109,7 +108,7 @@ def get_log(kind, things):
 
 def show_log(stream, *args):
     log = [("kind", "id", "completed", "elapsed")]
-    for (name, data) in args:
+    for name, data in args:
         individual, total = get_log(name, data)
         log.append((name, "total", None, total))
         log.extend(individual)
