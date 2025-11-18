@@ -44,3 +44,54 @@ class TesterUniform:
 
     def __str__(self):
         return f"test-{self._id}/{self._speed:.2f}"
+
+
+class Recorder:
+    """Record elapsed times."""
+
+    def __init__(self):
+        self._elapsed = 0.0
+        self._current = None
+
+    def start(self, sim):
+        assert self._current is None
+        self._current = sim.now
+
+    def end(self, sim):
+        assert self._current is not None
+        self._elapsed += sim.now - self._current
+        self._current = None
+
+
+class TaskRecord(TaskUniform, Recorder):
+    """Task that records time taken."""
+
+    _all = []
+
+    def __init__(self, params):
+        super().__init__(params)
+        Recorder.__init__(self)
+        self._actual = None
+        TaskRecord._all.append(self)
+
+
+class DeveloperRecord(DeveloperUniform, Recorder):
+    """Developer that records time taken."""
+
+    _all = []
+
+    def __init__(self, params):
+        super().__init__(params)
+        Recorder.__init__(self)
+        DeveloperRecord._all.append(self)
+
+
+class TesterRecord(TesterUniform, Recorder):
+    """Tester that records time taken."""
+
+    _all = []
+
+    def __init__(self, params):
+        super().__init__(params)
+        Recorder.__init__(self)
+        TesterRecord._all.append(self)

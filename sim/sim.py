@@ -19,6 +19,7 @@ SCENARIOS = [
     "two_stage_refactored",
     "two_stage_logging",
     "summary_statistics",
+    "self_recording",
 ]
 
 PARAMETERS = {
