@@ -62,8 +62,8 @@ def main():
 def _load_parameters(args):
     """Get simulation parameters."""
     params = PARAMETERS.copy()
-    if args.parameters is not None:
-        with open(args.parameters, "r") as reader:
+    if args.params is not None:
+        with open(args.params, "r") as reader:
             params.update(json.load(reader))
     return params
 
@@ -73,7 +73,7 @@ def _parse_args():
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--all", action="store_true", help="run all scenarios")
-    parser.add_argument("--parameters", type=str, help="parameter file")
+    parser.add_argument("--params", type=str, help="parameter file")
     parser.add_argument("--scenario", choices=SCENARIOS, help="scenario to run")
     parser.add_argument("--verbose", type=int, default=0, help="logging level")
     return parser.parse_args()

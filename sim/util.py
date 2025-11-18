@@ -107,9 +107,9 @@ def get_log(kind, things):
     return individual, round(total, 2)
 
 
-def show_log(stream, *what):
+def show_log(stream, *args):
     log = [("kind", "id", "completed", "elapsed")]
-    for (name, data) in what:
+    for (name, data) in args:
         individual, total = get_log(name, data)
         log.append((name, "total", None, total))
         log.extend(individual)
