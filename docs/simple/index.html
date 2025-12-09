@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Simple Simulations</title>
+<link href="../static/favicon.ico" rel="icon" type="image/x-icon"/>
+<link href="../static/page.css" rel="stylesheet" type="text/css"/>
+</head>
+<body>
+<nav>
+<a href="../">Home</a>
+      ·
+      <span class="dropdown">
+<a href="#">Lessons</a>
+<span class="dropdown-content" id="nav-lessons">
+<a href="../intro/">Introduction</a>
+<a href="../simple/">Simple Simulations</a>
+<a href="../finale/">Conclusion</a>
+</span>
+</span>
+      ·
+      <span class="dropdown">
+<a href="#">Appendices</a>
+<span class="dropdown-content" id="nav-appendices">
+<a href="../license/">License</a>
+<a href="../conduct/">Code of Conduct</a>
+<a href="../contributing/">Contributing</a>
+<a href="../bibliography/">Bibliography</a>
+<a href="../glossary/">Glossary</a>
+</span>
+</span>
+</nav>
+<main>
+<h1>Simple Simulations</h1>
+<ul>
+<li>FIXME</li>
+</ul>
+<h2>A Hobby Project</h2>
+<ul>
+<li>Shae works for 50 minutes and then takes a 10-minute break</li>
+<li>Import <code>Environment</code> from <code>simpy</code></li>
+<li>Define a generator to simulate work<ul>
+<li><code>env.timeout(<em>duration</em>)</code> creates an object that means "wait this long"</li>
+<li><code>yield</code> suspends the worker and gives this object to <a href="https://simpy.readthedocs.io/">SimPy</a></li>
+<li>SimPy advances its clock (does <em>not</em> actually "wait")</li>
+</ul>
+</li>
+</ul>
+<pre class=""><code data-file="fixed_work_and_break.py">T_WORK = 50
+T_BREAK = 10
+
+
+def worker(env):
+    while True:
+        print(f"start work at {env.now}")
+        yield env.timeout(T_WORK)
+        print(f"start break at {env.now}")
+        yield env.timeout(T_BREAK)
+</code></pre>
+<ul>
+<li>To make this work:<ul>
+<li>Create an <code>Environment</code></li>
+<li>Call <code>worker</code> to create a generator object<ul>
+<li>Does <em>not</em> execute function yet</li>
+</ul>
+</li>
+<li>Pass in the environment so the generator can call <code>.timeout</code></li>
+<li>Tell the environment how long to run</li>
+</ul>
+</li>
+</ul>
+<pre class=""><code data-file="fixed_work_and_break.py">T_MORNING = 4 * 60
+
+if __name__ == "__main__":
+    env = Environment()
+    proc = worker(env)
+    env.process(proc)
+    env.run(until=T_MORNING)
+    print(f"done at {env.now}")
+</code></pre>
+<ul>
+<li>Output</li>
+</ul>
+<pre class=""><code data-file="fixed_work-and_break.out">start work at 0
+start break at 50
+start work at 60
+start break at 110
+start work at 120
+start break at 170
+start work at 180
+start break at 230
+done at 240
+</code></pre>
+<ul>
+<li>FIXME: diagram of execution</li>
+</ul>
+</main>
+<footer>
+<div class="row">
+<div class="col-3 left">
+	  ⇐ <a href="../intro/">Introduction</a>
+</div>
+<div class="col-6 center">
+<a href="../"></a>
+	  © 2025
+	  <a href="../#acknowledgments">the authors</a>
+</div>
+<div class="col-3 right">
+<a href="../finale/">Conclusion</a> ⇒
+	</div>
+</div>
+</footer>
+</body>
+</html>

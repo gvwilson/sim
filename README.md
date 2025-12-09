@@ -7,6 +7,7 @@ Discrete event simulation of software development
 <div id="lessons" markdown="1">
 
 1.  [Introduction](@/intro/): who this is for and what it covers
+1.  [Simple Simulations](@/simple/): the basics of discrete event simulation
 1.  [Conclusion](@/finale/): where we've been and what comes next
 
 </div>
@@ -29,4 +30,5 @@ Discrete event simulation of software development
     He was the co-founder and first Executive Director of Software Carpentry
     and received ACM SIGSOFT's Influential Educator Award in 2020.
 
+[simpy]: https://simpy.readthedocs.io/
 [wilson-greg]: https://third-bit.com/
