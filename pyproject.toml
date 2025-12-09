@@ -37,6 +37,7 @@ skips = [
     "*.out",
     "*.py",
     "*.sh",
+    "Makefile",
     "extras/**",
     "uv.lock"
 ]
