@@ -155,8 +155,6 @@ F
 G
 ```
 
-<section class="exercise" markdown="1">
-
 ## Exercises
 
 1.  Write a generator that produces items alternately from two lists.
@@ -192,5 +190,3 @@ Traceback (most recent call last):
     ch = generator.send(flag)
 StopIteration
 ```
-
-</section>

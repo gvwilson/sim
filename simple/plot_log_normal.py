@@ -4,8 +4,8 @@ import polars as pl
 from scipy.stats import lognorm
 import sys
 
-mu = 0
-sigma = 1
+mu = 0.25
+sigma = 0.5
 
 dist = lognorm(s=sigma, scale=np.exp(mu))
 x = np.linspace(dist.ppf(0.001), dist.ppf(0.99), 500)

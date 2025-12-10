@@ -234,6 +234,137 @@ fig.write_image(sys.argv[1])
 </li>
 <li><em>Understanding a simulation is as much work as building it</em></li>
 </ul>
+<h2>Logging via Instrumentation</h2>
+<ul>
+<li>Use a <a href="../glossary/#context-manager">context manager</a> to create log entries<ul>
+<li><code>__enter__</code> adds a "start" event</li>
+<li><code>__exit__</code> adds an "end" event</li>
+</ul>
+</li>
+<li>Work backwards from desired change in <code>worker</code></li>
+</ul>
+<pre class="language-python"><code class="language-python" data-file="context_manager_log.py">def worker(env, log):
+    while True:
+        with LogWork(env, log):
+            yield env.timeout(t_work())
+        yield env.timeout(T_BREAK)
+</code></pre>
+<ul>
+<li>Create the <code>LogWork</code> class<ul>
+<li>Don't need to save the instance in a variable</li>
+</ul>
+</li>
+</ul>
+<pre class="language-python"><code class="language-python" data-file="context_manager_log.py">class LogWork:
+    def __init__(self, env, log):
+        self.env = env
+        self.log = log
+
+    def __enter__(self):
+        self.log.append({"event": "start", "time": self.env.rnow})
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.log.append({"event": "end", "time": self.env.rnow})
+</code></pre>
+<ul>
+<li>Accurate reporting</li>
+<li>But we have to insert monitoring into our worker<ul>
+<li>And as it becomes more complex, that's going to be harder to read</li>
+</ul>
+</li>
+</ul>
+<h2>Simulating with Objects</h2>
+<ul>
+<li>Create a class to represe the worker<ul>
+<li>Its <code>run</code> method is a generator</li>
+<li>Its constructor creates the process </li>
+</ul>
+</li>
+</ul>
+<pre class="language-python"><code class="language-python" data-file="simulate_with_objects.py">class Worker:
+    def __init__(self, env):
+        self.env = env
+        self.env.process(self.run())
+
+    def run(self):
+        while True:
+            print(f"{self.env.rnow} start")
+            yield self.env.timeout(t_work())
+            print(f"{self.env.rnow} end")
+            yield self.env.timeout(T_BREAK)
+</code></pre>
+<ul>
+<li>Main body just creates the object</li>
+</ul>
+<pre class="language-python"><code class="language-python" data-file="simulate_with_objects.py">def main():
+    seed = int(sys.argv[1]) if len(sys.argv) &gt; 1 else SEED
+    random.seed(seed)
+    env = Env()
+    worker = Worker(env)
+    env.run(until=T_MORNING)
+</code></pre>
+<pre class="language-python"><code class="language-python" data-file="simulate_with_objects.out">0 start
+26.665 end
+36.665 start
+47.072 end
+57.072 start
+100.08 end
+110.08 start
+132.025 end
+142.025 start
+166.762 end
+176.762 start
+194.508 end
+204.508 start
+237.149 end
+</code></pre>
+<h2>Logging via Sampling</h2>
+<ul>
+<li>Define another process that inspects the worker periodically and records its state</li>
+</ul>
+<pre class="language-python"><code class="language-python" data-file="sampling_log.py">class Logger:
+    def __init__(self, env, worker):
+        self.env = env
+        self.worker = worker
+        self.log = []
+        self.env.process(self.run())
+
+    def run(self):
+        while True:
+            self.log.append({"time": self.env.rnow, "state": self.worker.state})
+            yield self.env.timeout(T_LOG)
+</code></pre>
+<ul>
+<li>Modify the worker to make its state explicit<ul>
+<li>Initialize in constructor and update in <code>run</code></li>
+</ul>
+</li>
+</ul>
+<pre class="language-python"><code class="language-python" data-file="sampling_log.py">class Worker:
+    def __init__(self, env):
+        self.env = env
+        self.state = "idle"
+        self.env.process(self.run())
+
+    def run(self):
+        while True:
+            self.state = "work"
+            yield self.env.timeout(t_work())
+            self.state = "idle"
+            yield self.env.timeout(T_BREAK)
+</code></pre>
+<div class="center">
+<img alt="time-series plot of sampling" src="visualize_sampling_log.svg"/>
+</div>
+<ul>
+<li>Instrumentation is easier in simple systems</li>
+<li>Sampling is easier in complex ones</li>
+<li><a href="../glossary/#separation-of-concerns">Separation of concerns</a></li>
+</ul>
+<h2>Exercises</h2>
+<ol>
+<li>Why are the edges in the second plot not quite vertical?</li>
+</ol>
 </main>
 <footer>
 <div class="row">
