@@ -5,7 +5,7 @@ def gen_upper_lower(text):
         result = text[i]
         i += 1
         temp = result.lower() if lower else result.upper()
-        lower = (yield temp)
+        lower = yield temp
 
 
 vowels = "aeiou"

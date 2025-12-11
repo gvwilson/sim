@@ -1,42 +1,50 @@
 [
   {
-    "id": "manager-0",
+    "id": "manager",
     "time": 0,
-    "event": "create job 3"
+    "job": 0,
+    "event": "create"
   },
   {
-    "id": "programmer-0",
+    "id": "programmer",
     "time": 0,
-    "event": "get job 3"
+    "job": 0,
+    "event": "start"
   },
   {
-    "id": "programmer-0",
+    "id": "programmer",
     "time": 3,
-    "event": "complete job 3"
+    "job": 0,
+    "event": "end"
   },
   {
-    "id": "manager-0",
+    "id": "manager",
     "time": 4,
-    "event": "create job 3"
+    "job": 1,
+    "event": "create"
   },
   {
-    "id": "programmer-0",
+    "id": "programmer",
     "time": 4,
-    "event": "get job 3"
+    "job": 1,
+    "event": "start"
   },
   {
-    "id": "programmer-0",
+    "id": "programmer",
     "time": 7,
-    "event": "complete job 3"
+    "job": 1,
+    "event": "end"
   },
   {
-    "id": "manager-0",
+    "id": "manager",
     "time": 8,
-    "event": "create job 3"
+    "job": 2,
+    "event": "create"
   },
   {
-    "id": "programmer-0",
+    "id": "programmer",
     "time": 8,
-    "event": "get job 3"
+    "job": 2,
+    "event": "start"
   }
 ]

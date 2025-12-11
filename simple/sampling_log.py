@@ -54,7 +54,6 @@ def main():
     seed = int(sys.argv[1]) if len(sys.argv) > 1 else SEED
     random.seed(seed)
     env = Env()
-    log = []
     worker = Worker(env)
     logger = Logger(env, worker)
     env.run(until=T_MORNING)

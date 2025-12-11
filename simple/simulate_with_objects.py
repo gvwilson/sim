@@ -1,4 +1,3 @@
-import json
 import random
 from simpy import Environment
 import sys
@@ -39,7 +38,7 @@ def main():
     seed = int(sys.argv[1]) if len(sys.argv) > 1 else SEED
     random.seed(seed)
     env = Env()
-    worker = Worker(env)
+    Worker(env)
     env.run(until=T_MORNING)
 
 
