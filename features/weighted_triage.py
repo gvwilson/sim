@@ -16,7 +16,7 @@ PARAMS = {
     "t_develop_sigma": 0.6,
     "t_job_arrival": 0.5,
     "t_monitor": 5,
-    "t_sim": 200,
+    "t_sim": 100,
     "t_triage": 50,
 }
 
@@ -85,7 +85,7 @@ class Simulation:
 
 
 class Job:
-    SAVE = ("id", "t_create", "t_start", "t_end", "worker_id")
+    SAVE = ("id", "priority", "t_create", "t_start", "t_end", "t_discard", "worker_id")
     _id = count()
     _all = []
 
@@ -104,6 +104,7 @@ class Job:
         self.t_create = sim.env.now
         self.t_start = None
         self.t_end = None
+        self.t_discard = None
         self.worker_id = None
 
     def __lt__(self, other):
@@ -151,10 +152,12 @@ class Triage:
 
     def discard_items(self, p_triage):
         low_priority = len(self.sim.params["p_priority"]) - 1
+        now = self.sim.env.now
         for i, job in enumerate(self.sim.queue.items):
             if job.priority != low_priority:
                 continue
             if random.uniform(0, 1) < p_triage:
+                self.sim.queue.items[i].t_discard = now
                 del self.sim.queue.items[i]
 
 
@@ -186,7 +189,12 @@ def main():
 
     sim = Simulation(params)
     sim.run()
-    json.dump({"params": params, "lengths": sim.queue_lengths,}, sys.stdout, indent=2)
+    result = {
+        "params": params,
+        "lengths": sim.queue_lengths,
+        "jobs": [job.as_json() for job in Job._all]
+    }
+    json.dump(result, sys.stdout, indent=2)
 
 
 if __name__ == "__main__":

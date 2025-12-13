@@ -22,8 +22,12 @@
   <img src="weighted_priorities_1000.svg" alt="queue length with weighted priorities and long time">
 </div>
 
-## Regular Triage
+## Periodic Triage
 
 <div class="center">
   <img src="weighted_triage_1000.svg" alt="queue length with weighted priorities and regular triage">
+</div>
+
+<div class="center">
+  <img src="weighted_triage_completion_1001.svg" alt="completion rates with weighted priorites and regular triage">
 </div>
