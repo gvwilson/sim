@@ -1,3 +1,5 @@
+"""Represent jobs as objects that record data."""
+
 from itertools import count
 import json
 import random
@@ -5,10 +7,8 @@ from simpy import Environment, Store
 import sys
 
 T_SIM = 100
-T_JOB_ARRIVAL_MIN = 10
-T_JOB_ARRIVAL_MAX = 30
-T_WORK_MIN = 10
-T_WORK_MAX = 50
+T_JOB_ARRIVAL = (10, 30)
+T_WORK = (10, 50)
 SEED = 12345
 PREC = 3
 
@@ -18,11 +18,11 @@ def rt(env):
 
 
 def rand_job_arrival():
-    return random.uniform(T_JOB_ARRIVAL_MIN, T_JOB_ARRIVAL_MAX)
+    return random.uniform(*T_JOB_ARRIVAL)
 
 
 def rand_work():
-    return random.uniform(T_WORK_MIN, T_WORK_MAX)
+    return random.uniform(*T_WORK)
 
 
 class Job:
@@ -67,10 +67,8 @@ def main():
     params = {
         "seed": seed,
         "t_sim": t_sim,
-        "t_job_arrival_min": T_JOB_ARRIVAL_MIN,
-        "t_job_arrival_max": T_JOB_ARRIVAL_MAX,
-        "t_work_min": T_WORK_MIN,
-        "t_work_max": T_WORK_MAX,
+        "t_job_arrival": T_JOB_ARRIVAL,
+        "t_work": T_WORK,
     }
     result = {
         "params": params,

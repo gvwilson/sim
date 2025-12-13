@@ -1,3 +1,5 @@
+"""Visualize job start and stop times produced by monitor_uniform_work_and_break.py."""
+
 import json
 import plotly.express as px
 import polars as pl

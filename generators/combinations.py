@@ -1,3 +1,5 @@
+"""Generate combinations."""
+
 def gen_combinations(left, right):
     for left_item in left:
         for right_item in right:

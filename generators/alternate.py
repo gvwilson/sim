@@ -1,3 +1,5 @@
+"""Generate alternating sequence to show generators as objects."""
+
 def alternate(processes):
     while True:
         try:

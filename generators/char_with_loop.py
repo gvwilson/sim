@@ -1,3 +1,5 @@
+"""Using a generator in a loop."""
+
 def gen_char_from_string(text):
     for ch in text:
         yield ch

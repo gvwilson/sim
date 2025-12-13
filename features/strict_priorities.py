@@ -1,5 +1,6 @@
-"""Simulate a system with multiple programmers and a single queue."""
+"""Simulate jobs with varying priorities and a strict policy."""
 
+import argparse
 from itertools import count
 import json
 import random
@@ -12,6 +13,7 @@ PARAMS = {
     "t_develop_mu": 0.5,
     "t_develop_sigma": 0.6,
     "t_job_arrival": 1.0,
+    "t_monitor": 5,
     "t_sim": 10,
 }
 
@@ -29,6 +31,20 @@ class Simulation:
         self.params = params
         self.env = Environment()
         self.queue = Store(self.env)
+        self.queue_lengths = []
+
+    def run(self):
+        Job.clear()
+        self.env.process(self.monitor())
+        self.env.process(manager(self))
+        for i in range(self.params["n_programmer"]):
+            self.env.process(programmer(self, i))
+        self.env.run(until=self.params["t_sim"])
+
+    def monitor(self):
+        while True:
+            self.queue_lengths.append({"time": rv(self.env.now), "length": len(self.queue.items)})
+            yield self.env.timeout(self.params["t_monitor"])
 
     def rand_job_arrival(self):
         return random.expovariate(1.0 / self.params["t_job_arrival"])
@@ -43,6 +59,11 @@ class Job:
     SAVE = ("id", "t_create", "t_start", "t_end", "worker_id")
     _id = count()
     _all = []
+
+    @staticmethod
+    def clear():
+        Job._id = count()
+        Job._all = []
 
     def __init__(self, sim):
         Job._all.append(self)
@@ -74,8 +95,15 @@ def programmer(sim, worker_id):
 
 
 def get_params():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--arrivals", nargs="+", help="arrival rates")
+    parser.add_argument("--overrides", nargs="+", default=[], help="parameter overrides")
+    args = parser.parse_args()
+
+    arrivals = [float(a) for a in args.arrivals] if args.arrivals else [PARAMS["t_job_arrival"]]
+
     params = PARAMS.copy()
-    for arg in sys.argv[1:]:
+    for arg in args.overrides:
         fields = arg.split("=")
         assert len(fields) == 2
         key, value = fields
@@ -86,24 +114,21 @@ def get_params():
             params[key] = float(value)
         else:
             assert False
-    return params
+
+    return params, arrivals
 
 
 def main():
-    params = get_params()
+    params, arrival_rates = get_params()
     random.seed(params["seed"])
+    result = []
 
-    sim = Simulation(params)
+    for rate in arrival_rates:
+        p = {**params, "t_job_arrival": rate}
+        sim = Simulation(p)
+        sim.run()
+        result.append({"params": p, "lengths": sim.queue_lengths,})
 
-    sim.env.process(manager(sim))
-    for i in range(params["n_programmer"]):
-        sim.env.process(programmer(sim, i))
-    sim.env.run(until=params["t_sim"])
-
-    result = {
-        "params": params,
-        "jobs": [job.as_json() for job in Job._all],
-    }
     json.dump(result, sys.stdout, indent=2)
 
 

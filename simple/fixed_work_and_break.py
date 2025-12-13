@@ -1,3 +1,5 @@
+"""Simulate alternating fixed work and break times."""
+
 from simpy import Environment
 
 T_WORK = 50

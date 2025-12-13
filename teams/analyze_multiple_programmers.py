@@ -1,3 +1,5 @@
+"""Analyze simulation of multiple programmers sharing a single queue."""
+
 import json
 import polars as pl
 from prettytable import PrettyTable, TableStyle

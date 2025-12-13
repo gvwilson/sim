@@ -190,20 +190,18 @@ fig.write_image(sys.argv[1])
 -   Setup
 
 ```{.python data-file=manager_developer_queue.py}
-T_JOB_ARRIVAL_MIN = 20
-T_JOB_ARRIVAL_MAX = 30
-T_WORK_MIN = 10
-T_WORK_MAX = 50
+T_JOB_ARRIVAL = (20, 30)
+T_WORK = (10, 50)
 PREC = 3
 
 def rt(env):
     return round(env.now, PREC)
 
 def rand_job_arrival():
-    return random.uniform(T_JOB_ARRIVAL_MIN, T_JOB_ARRIVAL_MAX)
+    return random.uniform(*T_JOB_ARRIVAL)
 
 def rand_work():
-    return random.uniform(T_WORK_MIN, T_WORK_MAX)
+    return random.uniform(*T_WORK)
 ```
 
 -   Manager puts things in queue
@@ -315,10 +313,8 @@ def main():
     params = {
         "seed": seed,
         "t_sim": t_sim,
-        "t_job_arrival_min": T_JOB_ARRIVAL_MIN,
-        "t_job_arrival_max": T_JOB_ARRIVAL_MAX,
-        "t_work_min": T_WORK_MIN,
-        "t_work_max": T_WORK_MAX,
+        "t_job_arrival": T_JOB_ARRIVAL,
+        "t_work": T_WORK,
     }
     result = {
         "params": params,

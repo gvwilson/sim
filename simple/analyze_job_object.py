@@ -1,3 +1,5 @@
+"""Analyze job statistics from job_object.py."""
+
 import json
 import plotly.express as px
 import polars as pl

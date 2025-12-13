@@ -1,3 +1,5 @@
+"""Use a monitoring process to record queue length."""
+
 import argparse
 from itertools import count
 import json

@@ -1,3 +1,5 @@
+"""Low-level explicit generator usage."""
+
 def gen_char_from_string(text):
     i = 0
     while i < len(text):

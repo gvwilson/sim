@@ -1,14 +1,15 @@
+"""Simulate uniform work and break times."""
+
 import random
 from simpy import Environment
 
-T_MIN_WORK = 10
-T_MAX_WORK = 50
+T_WORK = (10, 50)
 T_BREAK = 10
 T_MORNING = 4 * 60
 
 
 def rand_work():
-    return random.uniform(T_MIN_WORK, T_MAX_WORK)
+    return random.uniform(*T_WORK)
 
 
 def worker(env):

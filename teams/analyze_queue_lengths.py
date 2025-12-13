@@ -1,3 +1,5 @@
+"""Analyze queue lengths produced by queue_lengths.py."""
+
 import json
 import plotly.express as px
 import polars as pl

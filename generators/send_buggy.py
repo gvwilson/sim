@@ -1,3 +1,5 @@
+"""Buggy generator for exercise."""
+
 def gen_upper_lower(text):
     lower = True
     i = 0

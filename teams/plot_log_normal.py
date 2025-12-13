@@ -1,3 +1,5 @@
+"""Plog the log-normal distribution."""
+
 import numpy as np
 import plotly.express as px
 import polars as pl

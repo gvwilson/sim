@@ -1,3 +1,5 @@
+"""Infinite generator."""
+
 def gen_infinite(text):
     pos = 0
     while True:
