@@ -214,3 +214,23 @@ class Simulation:
 </div>
 
 -   Everything is fine until suddenly it's not
+
+## A Little Bit of Theory
+
+-   λ (lambda) is the arrival rate (the average number of jobs arriving per unit time)
+-   L is the average number of customers in the system
+-   W is average time a customer spends in the system
+-   [Little's Law](g:littles-law): L = λW
+
+-   μ (mu) is the service rate (the average number of jobs a single server can serve per unit time)
+-   ρ (rho) is the utilization (the fraction of time the server is busy)
+-   ρ = λ / μ for single-server systems *if λ < μ*
+    -   If λ ≥ μ, the queue grows without limit
+
+-   Average waiting time in queue W<sub>q</sub> = ρ / (μ (1 - ρ))
+    -   Think of (1 - ρ) as spare capacity
+    -   As the system approaches saturation, waiting times increase rapidly
+
+-   If all your programmers are busy 100% of the time,
+    the waiting time for new work explodes
+-   You must have slack in the system in order to keep waiting times down

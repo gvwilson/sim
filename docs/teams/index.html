@@ -274,6 +274,37 @@
 <ul>
 <li>Everything is fine until suddenly it's not</li>
 </ul>
+<h2>A Little Bit of Theory</h2>
+<ul>
+<li>λ (lambda) is the arrival rate (the average number of jobs arriving per unit time)</li>
+<li>L is the average number of customers in the system</li>
+<li>W is average time a customer spends in the system</li>
+<li>
+<p><a href="../glossary/#littles-law">Little's Law</a>: L = λW</p>
+</li>
+<li>
+<p>μ (mu) is the service rate (the average number of jobs a single server can serve per unit time)</p>
+</li>
+<li>ρ (rho) is the utilization (the fraction of time the server is busy)</li>
+<li>
+<p>ρ = λ / μ for single-server systems <em>if λ &lt; μ</em></p>
+<ul>
+<li>If λ ≥ μ, the queue grows without limit</li>
+</ul>
+</li>
+<li>
+<p>Average waiting time in queue W<sub>q</sub> = ρ / (μ (1 - ρ))</p>
+<ul>
+<li>Think of (1 - ρ) as spare capacity</li>
+<li>As the system approaches saturation, waiting times increase rapidly</li>
+</ul>
+</li>
+<li>
+<p>If all your programmers are busy 100% of the time,
+    the waiting time for new work explodes</p>
+</li>
+<li>You must have slack in the system in order to keep waiting times down</li>
+</ul>
 </main>
 <footer>
 <div class="row">
