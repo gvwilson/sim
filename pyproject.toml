@@ -19,6 +19,7 @@ dependencies = [
     "plotly[express]>=6.5.0",
     "polars>=1.36.1",
     "prettytable>=3.17.0",
+    "scipy>=1.16.3",
     "simpy>=4.0.1"
 ]
 

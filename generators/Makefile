@@ -5,3 +5,6 @@ all: ${OUT}
 
 %.out: %.py
 	-python $< >& $@
+
+clean:
+	@rm -f *~ *.json *.out *.svg
