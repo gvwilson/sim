@@ -8,7 +8,8 @@ Discrete event simulation of software development
 
 1.  [Introduction](@/intro/): who this is for and what it covers
 1.  [Simple Simulations](@/simple/): the basics of discrete event simulation
-1.  [Teams](@/teams/): multiple actors in multiple layers
+1.  [Teams](@/teams/): multiple actors and a little theory
+1.  [More Features](@/features/): more complex simulations
 1.  [Conclusion](@/finale/): where we've been and what comes next
 
 </div>
