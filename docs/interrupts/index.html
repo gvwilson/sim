@@ -263,6 +263,203 @@
 </ul>
 </li>
 </ul>
+<h2>Resuming Interrupted Work Correctly</h2>
+<ul>
+<li><code>programmer</code> is too complicated</li>
+<li>Model interrupts as jobs</li>
+</ul>
+<pre class="language-python"><code class="language-python" data-file="interrupt_resume_corrected.py">def interruptor(sim):
+    while True:
+        yield sim.env.timeout(sim.rand_interrupt())
+        programmer = random.choice(sim.programmers)
+        programmer.interrupt(Job(sim, "interrupt", sim.params["t_interrupt_len"]))
+</code></pre>
+<ul>
+<li>Modify <code>Job</code> to keep track of kind</li>
+</ul>
+<pre class="language-python"><code class="language-python" data-file="interrupt_resume_corrected.py">class Job:
+    def __init__(self, sim, kind, develop):
+        …as before…
+        self.kind = kind
+</code></pre>
+<ul>
+<li>Modify <code>programmer</code> to:<ol>
+<li>Keep a stack of work</li>
+<li>Only use <code>yield</code> inside the <code>try</code> block</li>
+</ol>
+</li>
+</ul>
+<pre class="language-python"><code class="language-python" data-file="interrupt_resume_corrected.py">def programmer(sim, worker_id):
+    stack = []
+    while True:
+        started = None
+        try:
+            if len(stack) == 0:
+                # try to get a new regular job
+            else:
+                # try to finish the top job on the stack
+        except Interrupt as exc:
+            # save work done so far and push interruption on the stack
+</code></pre>
+<pre class="language-python"><code class="language-python" data-file="interrupt_resume_corrected.py">def programmer(sim, worker_id):
+    stack = []
+    while True:
+        started = None
+        try:
+            if len(stack) == 0:
+                # try to get a new regular job
+                job = yield sim.queue.get()
+                job.worker_id = worker_id
+                stack.append(job)
+            else:
+                # try to finish the top job on the stack
+        except Interrupt as exc:
+            # save work done so far and push interruption on the stack
+</code></pre>
+<pre class="language-python"><code class="language-python" data-file="interrupt_resume_corrected.py">def programmer(sim, worker_id):
+    stack = []
+    while True:
+        started = None
+        try:
+            if len(stack) == 0:
+                # try to get a new regular job
+            else:
+                # try to finish the top job on the stack
+                job = stack[-1]
+                if job.t_start is None:
+                    job.t_start = sim.env.now
+                started = sim.env.now
+                yield sim.env.timeout(job.t_develop - job.t_done)
+                job.t_done = job.t_develop
+                job.t_end = sim.env.now
+                stack.pop()
+        except Interrupt as exc:
+            # save work done so far and push interruption on the stack
+</code></pre>
+<pre class="language-python"><code class="language-python" data-file="interrupt_resume_corrected.py">def programmer(sim, worker_id):
+    stack = []
+    while True:
+        started = None
+        try:
+            if len(stack) == 0:
+                # try to get a new regular job
+            else:
+                # try to finish the top job on the stack
+        except Interrupt as exc:
+            # save work done so far and push interruption on the stack
+            if (len(stack) &gt; 0) and (started is not None):
+                job = stack[-1]
+                job.n_interrupt += 1
+                job.t_done += sim.env.now - started
+            stack.append(exc.cause)
+</code></pre>
+<ul>
+<li>What happens as we increase the number of programmers?</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th style="text-align: right;">n_programmer</th>
+<th style="text-align: right;">n_regular</th>
+<th style="text-align: right;">…started</th>
+<th style="text-align: right;">…completed</th>
+<th style="text-align: right;">n_interrupt</th>
+<th style="text-align: right;">…started</th>
+<th style="text-align: right;">…completed</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1031</td>
+<td style="text-align: right;">32</td>
+<td style="text-align: right;">31</td>
+<td style="text-align: right;">198</td>
+<td style="text-align: right;">198</td>
+<td style="text-align: right;">181</td>
+</tr>
+<tr>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">1031</td>
+<td style="text-align: right;">527</td>
+<td style="text-align: right;">525</td>
+<td style="text-align: right;">198</td>
+<td style="text-align: right;">198</td>
+<td style="text-align: right;">195</td>
+</tr>
+<tr>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">1010</td>
+<td style="text-align: right;">971</td>
+<td style="text-align: right;">968</td>
+<td style="text-align: right;">220</td>
+<td style="text-align: right;">220</td>
+<td style="text-align: right;">220</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>More regular jobs are started</li>
+<li>Fraction that are completed stays the same</li>
+<li>Fraction of interrupts completed stays the same</li>
+<li>Now let's double the frequency of interruptions</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th style="text-align: right;">n_programmer</th>
+<th style="text-align: right;">n_regular</th>
+<th style="text-align: right;">…started</th>
+<th style="text-align: right;">…completed</th>
+<th style="text-align: right;">n_interrupt</th>
+<th style="text-align: right;">…started</th>
+<th style="text-align: right;">…completed</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1025</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">383</td>
+<td style="text-align: right;">383</td>
+<td style="text-align: right;">78</td>
+</tr>
+<tr>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">1025</td>
+<td style="text-align: right;">84</td>
+<td style="text-align: right;">82</td>
+<td style="text-align: right;">383</td>
+<td style="text-align: right;">383</td>
+<td style="text-align: right;">355</td>
+</tr>
+<tr>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">998</td>
+<td style="text-align: right;">547</td>
+<td style="text-align: right;">544</td>
+<td style="text-align: right;">378</td>
+<td style="text-align: right;">378</td>
+<td style="text-align: right;">376</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>Number of regular jobs completed is 10% with 1 programmer, 15% with 2, and 56% with 3</li>
+<li>Number of self-interruptions climbs as expected</li>
+</ul>
+<div class="center">
+<img alt="self-interruption frequency vs. job arrival rate and number of programmers" src="analyze_self_interrupt.svg"/>
+</div>
+<ul>
+<li>Key points<ol>
+<li>Everything that yields must be inside the <code>try</code> block</li>
+<li>Keep state simple or you'll never debug it</li>
+</ol>
+</li>
+</ul>
 </main>
 <footer>
 <div class="row">

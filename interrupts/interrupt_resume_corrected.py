@@ -35,14 +35,15 @@ class Simulation:
         self.queue = Store(self.env)
         self.queue_length = []
         self.programmers = []
-        self.interrupts = []
 
     def run(self):
         Job.clear()
         self.env.process(self.monitor())
         self.env.process(creator(self))
         self.env.process(interruptor(self))
-        self.programmers = [Programmer(sim, i) for i in range(self.params["n_programmer"])]
+        self.programmers = [
+            self.env.process(programmer(self, i)) for i in range(self.params["n_programmer"])
+        ]
         self.env.run(until=self.params["t_sim"])
 
     def monitor(self):
@@ -98,14 +99,34 @@ def interruptor(sim):
     while True:
         yield sim.env.timeout(sim.rand_interrupt())
         programmer = random.choice(sim.programmers)
-        sim.interrupts.append(sim.env.now)
-        programmer.proc.interrupt(Job(sim, "interrupt", sim.params["t_interrupt_len"]))
+        programmer.interrupt(Job(sim, "interrupt", sim.params["t_interrupt_len"]))
 
 
 def programmer(sim, worker_id):
     stack = []
     while True:
-        pass
+        started = None
+        try:
+            if len(stack) == 0:
+                job = yield sim.queue.get()
+                job.worker_id = worker_id
+                stack.append(job)
+            else:
+                job = stack[-1]
+                if job.t_start is None:
+                    job.t_start = sim.env.now
+                started = sim.env.now
+                yield sim.env.timeout(job.t_develop - job.t_done)
+                job.t_done = job.t_develop
+                job.t_end = sim.env.now
+                stack.pop()
+        except Interrupt as exc:
+            if (len(stack) > 0) and (started is not None):
+                job = stack[-1]
+                job.n_interrupt += 1
+                job.t_done += sim.env.now - started
+            stack.append(exc.cause)
+
 
 def get_params():
     parser = argparse.ArgumentParser()
@@ -133,17 +154,11 @@ def main():
     random.seed(params["seed"])
 
     sim = Simulation(params)
-    status = "completed"
-    try:
-        sim.run()
-    except Interrupt:
-        status = f"uncaught interruption at {sim.env.now:.3f}"
+    sim.run()
     result = {
         "params": params,
         "lengths": sim.queue_length,
         "jobs": [job.as_json() for job in Job._all],
-        "interrupts": [rv(i) for i in sim.interrupts],
-        "status": status,
     }
     json.dump(result, sys.stdout, indent=2)
 

@@ -218,3 +218,131 @@ def programmer(sim, worker_id):
     -   We can be hit by another interruption while we're inside it
 -   We're actually lucky this happened so soon
     -   Timing bugs can lurk in code for decades
+
+## Resuming Interrupted Work Correctly
+
+-   `programmer` is too complicated
+-   Model interrupts as jobs
+
+```{.python data-file=interrupt_resume_corrected.py}
+def interruptor(sim):
+    while True:
+        yield sim.env.timeout(sim.rand_interrupt())
+        programmer = random.choice(sim.programmers)
+        programmer.interrupt(Job(sim, "interrupt", sim.params["t_interrupt_len"]))
+```
+
+-   Modify `Job` to keep track of kind
+
+```{.python data-file=interrupt_resume_corrected.py}
+class Job:
+    def __init__(self, sim, kind, develop):
+        …as before…
+        self.kind = kind
+```
+
+-   Modify `programmer` to:
+    1.  Keep a stack of work
+    2.  Only use `yield` inside the `try` block
+
+```{.python data-file=interrupt_resume_corrected.py}
+def programmer(sim, worker_id):
+    stack = []
+    while True:
+        started = None
+        try:
+            if len(stack) == 0:
+                # try to get a new regular job
+            else:
+                # try to finish the top job on the stack
+        except Interrupt as exc:
+            # save work done so far and push interruption on the stack
+```
+
+```{.python data-file=interrupt_resume_corrected.py}
+def programmer(sim, worker_id):
+    stack = []
+    while True:
+        started = None
+        try:
+            if len(stack) == 0:
+                # try to get a new regular job
+                job = yield sim.queue.get()
+                job.worker_id = worker_id
+                stack.append(job)
+            else:
+                # try to finish the top job on the stack
+        except Interrupt as exc:
+            # save work done so far and push interruption on the stack
+```
+
+```{.python data-file=interrupt_resume_corrected.py}
+def programmer(sim, worker_id):
+    stack = []
+    while True:
+        started = None
+        try:
+            if len(stack) == 0:
+                # try to get a new regular job
+            else:
+                # try to finish the top job on the stack
+                job = stack[-1]
+                if job.t_start is None:
+                    job.t_start = sim.env.now
+                started = sim.env.now
+                yield sim.env.timeout(job.t_develop - job.t_done)
+                job.t_done = job.t_develop
+                job.t_end = sim.env.now
+                stack.pop()
+        except Interrupt as exc:
+            # save work done so far and push interruption on the stack
+```
+
+```{.python data-file=interrupt_resume_corrected.py}
+def programmer(sim, worker_id):
+    stack = []
+    while True:
+        started = None
+        try:
+            if len(stack) == 0:
+                # try to get a new regular job
+            else:
+                # try to finish the top job on the stack
+        except Interrupt as exc:
+            # save work done so far and push interruption on the stack
+            if (len(stack) > 0) and (started is not None):
+                job = stack[-1]
+                job.n_interrupt += 1
+                job.t_done += sim.env.now - started
+            stack.append(exc.cause)
+```
+
+-   What happens as we increase the number of programmers?
+
+| n_programmer | n_regular | …started | …completed | n_interrupt | …started | …completed |
+| -----------: | --------: | -------: | ---------: | ----------: | -------: | ---------: |
+|            1 |      1031 |       32 |         31 |         198 |      198 |        181 |
+|            2 |      1031 |      527 |        525 |         198 |      198 |        195 |
+|            3 |      1010 |      971 |        968 |         220 |      220 |        220 |
+
+-   More regular jobs are started
+-   Fraction that are completed stays the same
+-   Fraction of interrupts completed stays the same
+-   Now let's double the frequency of interruptions
+
+| n_programmer | n_regular | …started | …completed | n_interrupt | …started | …completed |
+| -----------: | --------: | -------: | ---------: | ----------: | -------: | ---------: |
+|            1 |      1025 |        4 |          3 |         383 |      383 |         78 |
+|            2 |      1025 |       84 |         82 |         383 |      383 |        355 |
+|            3 |       998 |      547 |        544 |         378 |      378 |        376 |
+
+-   Number of regular jobs completed is 10% with 1 programmer, 15% with 2, and 56% with 3
+-   Number of self-interruptions climbs as expected
+
+<div class="center">
+  <img src="analyze_self_interrupt.svg" alt="self-interruption frequency vs. job arrival rate and number of programmers">
+</div>
+
+-   Key points
+    1.  Everything that yields must be inside the `try` block
+    2.  Keep state simple or you'll never debug it
