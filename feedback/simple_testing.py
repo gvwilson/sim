@@ -1,22 +1,22 @@
 """Add a layer of testing."""
 
 import argparse
-from itertools import count
+from itertools import count, product
 import json
 import random
 from simpy import Environment, Store
 import sys
 
 PARAMS = {
-    "n_programmer": 3,
-    "n_tester": 2,
-    "p_rework": 0.6,
+    "n_programmer": (2, 3, 4),
+    "n_tester": (2, 3, 4),
+    "p_rework": (0.2, 0.4, 0.6, 0.8),
     "seed": 12345,
     "t_dev_mu": 1.5,
     "t_dev_sigma": 1.0,
     "t_job_arrival": 5.0,
     "t_monitor": 5,
-    "t_sim": 20,
+    "t_sim": 1000,
 }
 
 PREC = 3
@@ -120,38 +120,20 @@ def tester(sim, tester_id):
             job.done = True
 
 
-def get_params():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--overrides", nargs="+", default=[], help="parameter overrides")
-    args = parser.parse_args()
-
-    params = PARAMS.copy()
-    for arg in args.overrides:
-        fields = arg.split("=")
-        assert len(fields) == 2
-        key, value = fields
-        assert key in params
-        if isinstance(params[key], int):
-            params[key] = int(value)
-        elif isinstance(params[key], float):
-            params[key] = float(value)
-        else:
-            assert False
-
-    return params
-
-
 def main():
-    params = get_params()
-    random.seed(params["seed"])
-
-    sim = Simulation(params)
-    sim.run()
-    result = {
-        "params": params,
-        "lengths": sim.lengths,
-        "jobs": [job.as_json() for job in Job._all],
-    }
+    random.seed(PARAMS["seed"])
+    result = []
+    combinations = product(PARAMS["n_programmer"], PARAMS["n_tester"], PARAMS["p_rework"])
+    for (n_programmer, n_tester, p_rework) in combinations:
+        sweep = {"n_programmer": n_programmer, "n_tester": n_tester, "p_rework": p_rework}
+        params = {**PARAMS, **sweep}
+        sim = Simulation(params)
+        sim.run()
+        result.append({
+            "params": params,
+            "lengths": sim.lengths,
+            "jobs": [job.as_json() for job in Job._all],
+        })
     json.dump(result, sys.stdout, indent=2)
 
 
