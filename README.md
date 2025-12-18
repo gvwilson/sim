@@ -6,12 +6,28 @@ Discrete event simulation of software development
 
 <div id="lessons" markdown="1">
 
-1.  [Introduction](@/intro/): who this is for and what it covers
-1.  [Simple Simulations](@/simple/): the basics of discrete event simulation
-1.  [Teams](@/teams/): multiple actors and a little theory
-1.  [More Features](@/features/): more complex simulations
-1.  [Interruptions](@/interrupts/): the bane of our existence
+1.  [Introduction](@/intro/): who this is for and what it covers.
+1.  [Simple Simulations](@/simple/): the basics of discrete event simulation.
+    -   A regular schedule with a single programmer.
+    -   Introducing randomness.
+    -   Monitoring and visualizing the simulation.
+    -   Connecting a manager and a team of programmers with a job queue.
+    -   Measuring throughput, delay, and utilization.
+1.  [Teams](@/teams/): multiple actors and a little theory.
+    -   The exponential and log-normal distributions.
+    -   One manager with multiple programmers.
+    -   Watching the backlog grow.
+    -   Little's Law and average waiting times.
+1.  [More Features](@/features/): more complex simulations.
+    -   Handling jobs in strict priority order.
+    -   Using priorities as weights.
+    -   The effect of periodic triage.
+1.  [Interruptions](@/interrupts/): the bane of our existence.
+    -   Throwing work away when it is interrupted.
+    -   Resuming interrupted work (buggy and correct versions).
 1.  [Feedback](@/feedback/): what goes around, comes around
+    -   Adding testers and another queue to create a three-layer simulation.
+    -   Refactoring to use classes instead of naked generators.
 1.  [Conclusion](@/finale/): where we've been and what comes next
 
 </div>
