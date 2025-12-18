@@ -85,3 +85,58 @@ def tester(sim, tester_id):
 </div>
 
 -   Gosh, this is hard to understand…
+
+## Using Classes
+
+-   [Simula][simula]: object-oriented programming was invented to support simulation
+-   Before making our simulation more realistic, [refactor](g:refactor) to use classes
+-   `Simulation` creates objects for programmers and testers
+    -   Their classes are responsible for creating and running generators
+
+```{.python data-file=class_testing.py}
+class Simulation:
+    …all other code as before…
+    def run(self):
+        Job.clear()
+        self.env.process(self.monitor())
+        self.env.process(creator(self))
+        self.programmers = [Programmer(self, i) for i in range(self.params["n_programmer"])]
+        self.testers = [Tester(self, i) for i in range(self.params["n_tester"])]
+        self.env.run(until=self.params["t_sim"])
+```
+
+-   Generic `Worker` stores a reference to the simulation and its ID
+-   Then calls a `.run` method and saves a reference to the generator
+    -   In case we want to interrupt it
+
+```{.python data-file=class_testing.py}
+class Worker:
+    def __init__(self, sim, id):
+        self.sim = sim
+        self.id = id
+        self.proc = sim.env.process(self.run())
+```
+
+-   `Programmer` implements `.run`
+    -   Identical to previous naked generator except `sim` becomes `self.sim`
+-   Similar change to `Tester` (not shown here)
+
+```{.python data-file=class_testing.py}
+class Programmer(Worker):
+    def run(self):
+        while True:
+            job = yield self.sim.prog_queue.get()
+            job.programmer_id = self.id
+            start = self.sim.env.now
+            yield self.sim.env.timeout(self.sim.rand_dev())
+            job.n_prog += 1
+            job.t_prog += self.sim.env.now - start
+            yield self.sim.test_queue.put(job)
+```
+
+-   We haven't changed the order of operations…
+-   …so the random number generator should produce the same values at the same moments…
+-   …so we can test our changes by checking that the output of the refactored version
+    is identical to the output of the original version
+
+[simula]: https://en.wikipedia.org/wiki/Simula

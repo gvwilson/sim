@@ -122,6 +122,62 @@ def main():
 <ul>
 <li>Gosh, this is hard to understand…</li>
 </ul>
+<h2>Using Classes</h2>
+<ul>
+<li><a href="https://en.wikipedia.org/wiki/Simula">Simula</a>: object-oriented programming was invented to support simulation</li>
+<li>Before making our simulation more realistic, <a href="../glossary/#refactor">refactor</a> to use classes</li>
+<li><code>Simulation</code> creates objects for programmers and testers<ul>
+<li>Their classes are responsible for creating and running generators</li>
+</ul>
+</li>
+</ul>
+<pre class="language-python"><code class="language-python" data-file="class_testing.py">class Simulation:
+    …all other code as before…
+    def run(self):
+        Job.clear()
+        self.env.process(self.monitor())
+        self.env.process(creator(self))
+        self.programmers = [Programmer(self, i) for i in range(self.params["n_programmer"])]
+        self.testers = [Tester(self, i) for i in range(self.params["n_tester"])]
+        self.env.run(until=self.params["t_sim"])
+</code></pre>
+<ul>
+<li>Generic <code>Worker</code> stores a reference to the simulation and its ID</li>
+<li>Then calls a <code>.run</code> method and saves a reference to the generator<ul>
+<li>In case we want to interrupt it</li>
+</ul>
+</li>
+</ul>
+<pre class="language-python"><code class="language-python" data-file="class_testing.py">class Worker:
+    def __init__(self, sim, id):
+        self.sim = sim
+        self.id = id
+        self.proc = sim.env.process(self.run())
+</code></pre>
+<ul>
+<li><code>Programmer</code> implements <code>.run</code><ul>
+<li>Identical to previous naked generator except <code>sim</code> becomes <code>self.sim</code></li>
+</ul>
+</li>
+<li>Similar change to <code>Tester</code> (not shown here)</li>
+</ul>
+<pre class="language-python"><code class="language-python" data-file="class_testing.py">class Programmer(Worker):
+    def run(self):
+        while True:
+            job = yield self.sim.prog_queue.get()
+            job.programmer_id = self.id
+            start = self.sim.env.now
+            yield self.sim.env.timeout(self.sim.rand_dev())
+            job.n_prog += 1
+            job.t_prog += self.sim.env.now - start
+            yield self.sim.test_queue.put(job)
+</code></pre>
+<ul>
+<li>We haven't changed the order of operations…</li>
+<li>…so the random number generator should produce the same values at the same moments…</li>
+<li>…so we can test our changes by checking that the output of the refactored version
+    is identical to the output of the original version</li>
+</ul>
 </main>
 <footer>
 <div class="row">

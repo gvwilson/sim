@@ -54,6 +54,9 @@
 <span id="random-uniform">uniform random distribution</span>
 :   FIXME
 
+<span id="refactor">refactor</span>
+:   FIXME
+
 <span id="reproducibility">reproducibility</span>
 :   FIXME
 
