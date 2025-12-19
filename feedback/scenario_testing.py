@@ -8,6 +8,8 @@ from simpy import Environment, Store
 import sys
 
 PARAMS = {
+    "scenario": "any",
+    "f_reduced": 0.5,
     "n_programmer": 3,
     "n_tester": 3,
     "p_rework": 0.5,
@@ -15,7 +17,6 @@ PARAMS = {
     "t_dev_mu": 1.5,
     "t_dev_sigma": 1.0,
     "t_job_arrival": 5.0,
-    "t_monitor": 5,
     "t_sim": 1000,
 }
 
@@ -34,24 +35,13 @@ class Simulation:
         self.env = Environment()
         self.prog_queue = Store(self.env)
         self.test_queue = Store(self.env)
-        self.lengths = []
 
     def run(self):
         Job.clear()
-        self.env.process(self.monitor())
         self.env.process(creator(self))
         self.programmers = [Programmer(self, i) for i in range(self.params["n_programmer"])]
         self.testers = [Tester(self, i) for i in range(self.params["n_tester"])]
         self.env.run(until=self.params["t_sim"])
-
-    def monitor(self):
-        details = (("prog", self.prog_queue), ("test", self.test_queue))
-        while True:
-            for (name, queue) in details:
-                self.lengths.append(
-                    {"time": rv(self.env.now), "queue": name, "length": len(queue.items)}
-                )
-            yield self.env.timeout(self.params["t_monitor"])
 
     def rand_dev(self):
         return random.lognormvariate(
@@ -104,8 +94,17 @@ class Worker:
         self.queue = Store(sim.env)
         self.proc = sim.env.process(self.run())
 
-    def choose(self, shared_queue):
-        req_shared = shared_queue.get()
+    def choose(self):
+        if self.sim.params["scenario"] == "any":
+            job = yield self.shared_queue.get()
+        elif self.sim.params["scenario"] in ("same", "reduced"):
+            job = yield from self.choose_same()
+        else:
+            assert False, f"unknown scenario {self.sim.params['scenario']}"
+        return job
+
+    def choose_same(self):
+        req_shared = self.shared_queue.get()
         req_own = self.queue.get()
         result = yield (req_shared | req_own)
         if (len(result.events) == 2) or (req_own in result):
@@ -116,14 +115,26 @@ class Worker:
             req_own.cancel()
         return job
 
+    def factor(self):
+        if self.sim.params["scenario"] in ("any", "same"):
+            return 1.0
+        elif self.sim.params["scenario"] == "reduced":
+            return self.sim.params["f_reduced"]
+        else:
+            assert False, f"unknown scenario {self.sim.params['scenario']}"
+
 
 class Programmer(Worker):
+    def __init__(self, sim, id):
+        super().__init__(sim, id)
+        self.shared_queue = self.sim.prog_queue
+
     def run(self):
         while True:
-            job = yield from self.choose(self.sim.prog_queue)
+            job = yield from self.choose()
             job.programmer_id = self.id
             start = self.sim.env.now
-            yield self.sim.env.timeout(self.sim.rand_dev())
+            yield self.sim.env.timeout(self.factor() * self.sim.rand_dev())
             job.n_prog += 1
             job.t_prog += self.sim.env.now - start
             if job.tester_id is None:
@@ -133,12 +144,16 @@ class Programmer(Worker):
 
 
 class Tester(Worker):
+    def __init__(self, sim, id):
+        super().__init__(sim, id)
+        self.shared_queue = self.sim.test_queue
+
     def run(self):
         while True:
-            job = yield from self.choose(self.sim.test_queue)
+            job = yield from self.choose()
             job.tester_id = self.id
             start = self.sim.env.now
-            yield self.sim.env.timeout(self.sim.rand_dev())
+            yield self.sim.env.timeout(self.factor() * self.sim.rand_dev())
             job.n_test += 1
             job.t_test += self.sim.env.now - start
             if self.sim.rand_rework():
@@ -158,10 +173,12 @@ def get_params():
         assert len(fields) == 2
         key, value = fields
         assert key in params
-        if isinstance(params[key], int):
-            params[key] = int(value)
-        elif isinstance(params[key], float):
+        if isinstance(params[key], float):
             params[key] = float(value)
+        elif isinstance(params[key], int):
+            params[key] = int(value)
+        elif isinstance(params[key], str):
+            params[key] = value
         else:
             assert False
 
@@ -171,13 +188,15 @@ def get_params():
 def main():
     params = get_params()
     random.seed(params["seed"])
-    sim = Simulation(params)
-    sim.run()
-    result = {
-        "params": params,
-        "lengths": sim.lengths,
-        "jobs": [job.as_json() for job in Job._all],
-    }
+    result = []
+    for scenario in ("any", "same", "reduced"):
+        p = {**params, "scenario": scenario}
+        sim = Simulation(p)
+        sim.run()
+        result.append({
+            "params": p,
+            "jobs": [job.as_json() for job in Job._all],
+        })
     json.dump(result, sys.stdout, indent=2)
 
 
