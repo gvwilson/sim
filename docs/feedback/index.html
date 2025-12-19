@@ -178,6 +178,124 @@ def main():
 <li>…so we can test our changes by checking that the output of the refactored version
     is identical to the output of the original version</li>
 </ul>
+<h2>Exploring Scenarios</h2>
+<ul>
+<li>Option 1: everything that needs re-work goes back in the shared queues<ul>
+<li>Which means any programmer and tester can pick it up</li>
+<li>Which isn't realistic</li>
+</ul>
+</li>
+<li>Option 2: work goes back to the same programmer and tester who handled it the first time<ul>
+<li>Which requires some changes to our simulation</li>
+</ul>
+</li>
+<li>Option 3: same as 2, but it takes less time for people to re-do work<ul>
+<li>Which is realistic…</li>
+<li>…except we have to guess at the discount ratio</li>
+</ul>
+</li>
+<li>Modify <code>Worker</code> constructor to give each worker (programmer or tester) their own queue</li>
+</ul>
+<pre class="language-python"><code class="language-python" data-file="scenario_testing.py">class Worker:
+    def __init__(self, sim, id):
+        self.sim = sim
+        self.id = id
+        self.queue = Store(sim.env)
+        self.proc = sim.env.process(self.run())
+</code></pre>
+<ul>
+<li>Modify <code>Programmer</code> to:<ul>
+<li>Keep track of which of the shared queues it gets jobs from</li>
+<li>Call a method <code>self.choose()</code> to get a job (we'll write this in a moment)</li>
+<li>Put the completed job in either the all-purpose testing queue (if it hasn't been tested before)
+    or the queue belonging to a specific tester (if it has)</li>
+</ul>
+</li>
+</ul>
+<pre class="language-python"><code class="language-python" data-file="scenario_testing.py">class Programmer(Worker):
+    def __init__(self, sim, id):
+        super().__init__(sim, id)
+        self.shared_queue = self.sim.prog_queue  # added
+
+    def run(self):
+        while True:
+            job = yield from self.choose()  # changed
+            job.programmer_id = self.id
+            start = self.sim.env.now
+            yield self.sim.env.timeout(self.factor() * self.sim.rand_dev())
+            job.n_prog += 1
+            job.t_prog += self.sim.env.now - start
+
+            # hand off the job
+            if job.tester_id is None:
+                yield self.sim.test_queue.put(job)
+            else:
+                yield self.sim.testers[job.tester_id].queue.put(job)
+</code></pre>
+<ul>
+<li>Similar change to <code>Tester</code></li>
+<li>Now, how does <code>self.choose()</code> work?<ul>
+<li>Put it in the generic <code>Worker</code> class because both <code>Programmer</code> and <code>Tester</code> need it</li>
+<li>This is why we recorded the shared queue in the constructors for <code>Programmer</code> and <code>Tester</code></li>
+</ul>
+</li>
+</ul>
+<pre class="language-python"><code class="language-python" data-file="scenario_testing.py">class Worker:
+    def choose(self):
+        if self.sim.params["scenario"] == "any":
+            job = yield self.shared_queue.get()
+        elif self.sim.params["scenario"] in ("same", "reduced"):
+            job = yield from self.choose_same()
+        else:
+            assert False, f"unknown scenario {self.sim.params['scenario']}"
+        return job
+</code></pre>
+<ul>
+<li>The hard work is in the <code>.choose_same</code> method<ul>
+<li>Create <em>but do not immediately <code>yield</code></em> a request for an item from each queue</li>
+<li><code>yield</code> the combination of those items using <code>|</code> (a short form for <code>simpy.AnyOf</code>)</li>
+<li><code>result</code> is dictionary-like object whose keys are the requests
+    and whose values are the items that we got</li>
+<li>If we got something from our own queue, take that</li>
+<li>If not, take what we got from the shared queue</li>
+<li>Important: we have to cancel the other request or we can't make another one from that queue</li>
+<li>Yes, this took me a while to figure out</li>
+<li>And yes, it's safe to cancel a request that wasn't satisfied</li>
+</ul>
+</li>
+</ul>
+<pre class="language-python"><code class="language-python" data-file="scenario_testing.py">    def choose_same(self):
+        req_shared = self.shared_queue.get()
+        req_own = self.queue.get()
+        result = yield (req_shared | req_own)
+        if (len(result.events) == 2) or (req_own in result):
+            job = result[req_own]
+            req_shared.cancel()
+        else:
+            job = result[req_shared]
+            req_own.cancel()
+        return job
+</code></pre>
+<ul>
+<li>So what are the results?</li>
+</ul>
+<div class="center">
+<img alt="three testing scenarios" src="analyze_scenario_testing.svg"/>
+</div>
+<ul>
+<li>If anyone can do the rework, we wind up with a lot of jobs stuck in progress,
+    but very very that haven't even been started</li>
+<li>If work goes back to the same people <em>and</em> it takes them half as long to re-do jobs,
+    we complete a lot more work <em>and</em> we have less of a backlog</li>
+<li>The one I didn't predict: if work goes back to the same people but there is no time saving,
+    we still complete a lot more jobs<ul>
+<li>Because we're giving re-work priority over new work</li>
+<li>The backlog grows more quickly than in the "anyone can do it"scenario,
+    but the number of incomplete jobs grows more slowly</li>
+</ul>
+</li>
+<li>This is why we simulate…</li>
+</ul>
 </main>
 <footer>
 <div class="row">
