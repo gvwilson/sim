@@ -1,6 +1,12 @@
 # Sim
 
-Discrete event simulation of software development
+<p class="subtitle" markdown="1">discrete event simulation of software development</p>
+
+> **2025-12-19:**
+> This material is under active development.
+> Feedback, suggestions, and corrections are very welcome,
+> either as issues in [the GitHub repository][repo]
+> or [by email](mailto:gvwilson@third-bit.com).
 
 ## Lessons
 
@@ -28,6 +34,7 @@ Discrete event simulation of software development
 1.  [Feedback](@/feedback/): what goes around, comes around
     -   Adding testers and another queue to create a three-layer simulation.
     -   Refactoring to use classes instead of naked generators.
+    -   Comparing three scenarios for handling re-work.
 1.  [Conclusion](@/finale/): where we've been and what comes next
 
 </div>
@@ -51,5 +58,6 @@ Discrete event simulation of software development
     He was the co-founder and first Executive Director of Software Carpentry
     and received ACM SIGSOFT's Influential Educator Award in 2020.
 
+[repo]: https://github.com/gvwilson/sim/
 [simpy]: https://simpy.readthedocs.io/
 [wilson-greg]: https://third-bit.com/
