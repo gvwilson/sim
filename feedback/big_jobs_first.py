@@ -10,6 +10,7 @@ import sys
 PARAMS = {
     "scenario": "any",
     "f_reduced": 0.5,
+    "n_batch": 10,
     "n_programmer": 3,
     "n_tester": 3,
     "p_rework": 0.5,
@@ -70,6 +71,7 @@ class Job:
         self.id = next(Job._id)
         self.t_create = sim.env.now
         self.done = False
+        self.expected_prog = sim.rand_dev()
         self.programmer_id = None
         self.n_prog = 0
         self.t_prog = 0
@@ -83,8 +85,15 @@ class Job:
 
 def creator(sim):
     while True:
-        yield sim.prog_queue.put(Job(sim))
-        yield sim.env.timeout(sim.rand_job_arrival())
+        delay = 0
+        jobs = []
+        for _ in range(sim.params["n_batch"]):
+            jobs.append(Job(sim))
+            delay += sim.rand_job_arrival()
+        jobs.sort(key=lambda j: j.expected_prog)
+        for j in jobs:
+            yield sim.prog_queue.put(j)
+        yield sim.env.timeout(delay)
 
 
 class Worker:
@@ -136,6 +145,7 @@ class Programmer(Worker):
             job = yield from self.choose()
             job.programmer_id = self.id
             start = self.sim.env.now
+            t = job.expected_prog if job.n_prog == 0 else self.sim.rand_dev()
             yield self.sim.env.timeout(self.factor(job.n_prog) * self.sim.rand_dev())
             job.n_prog += 1
             job.t_prog += self.sim.env.now - start
@@ -191,8 +201,8 @@ def main():
     params = get_params()
     random.seed(params["seed"])
     result = []
-    for scenario in ("any", "same", "reduced"):
-        p = {**params, "scenario": scenario}
+    for n_batch in (1, 5, 10, 20):
+        p = {**params, "n_batch": n_batch}
         sim = Simulation(p)
         sim.run()
         result.append({
