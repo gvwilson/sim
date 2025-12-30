@@ -39,7 +39,11 @@
 -   [*Greg Wilson*][wilson-greg] is a programmer, author, and educator based in Toronto.
     He was the co-founder and first Executive Director of Software Carpentry
     and received ACM SIGSOFT's Influential Educator Award in 2020.
+-   Thanks to [Rebecca Murphey][murphey-rebecca] at [Swarmia][swarmia]
+    for supporting the early stages of this project.
 
+[murphey-rebecca]: https://rmurphey.com/
 [repo]: https://github.com/gvwilson/sim2/
 [simpy]: https://simpy.readthedocs.io/
+[swarmia]: https://www.swarmia.com/
 [wilson-greg]: https://third-bit.com/

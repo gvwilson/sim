@@ -154,6 +154,11 @@ code {
     font-size: var(--size-code);
 }
 
+/* Appendices */
+div#appendices ol {
+    list-style-type: upper-alpha;
+}
+
 /* Cards */
 div.card {
     box-shadow: 0px var(--len-thick) var(--len-thick-double) 0px rgba(0,0,0,0.2);
