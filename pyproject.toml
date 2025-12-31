@@ -34,7 +34,7 @@ dev = [
 
 [project.urls]
 Homepage = "https://gvwilson.github.io/sim2"
-Repository = "https://github.com/gvwilson/sim2"
+Repository = "https://github.com/gvwilson/sim"
 
 [tool.mccole]
 skips = [

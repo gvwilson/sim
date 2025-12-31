@@ -43,7 +43,7 @@
     for supporting the early stages of this project.
 
 [murphey-rebecca]: https://rmurphey.com/
-[repo]: https://github.com/gvwilson/sim2/
+[repo]: https://github.com/gvwilson/sim/
 [simpy]: https://simpy.readthedocs.io/
 [swarmia]: https://www.swarmia.com/
 [wilson-greg]: https://third-bit.com/
