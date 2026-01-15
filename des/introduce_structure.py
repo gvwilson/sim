@@ -1,6 +1,6 @@
 """Introduce structure and utilities used in examples."""
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from dataclasses_json import dataclass_json
 import json
 from simpy import Environment

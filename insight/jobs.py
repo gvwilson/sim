@@ -2,7 +2,6 @@ from dataclasses import dataclass
 from random import lognormvariate, uniform
 
 from base import Priority, Recorder
-import util
 
 
 class Job(Recorder):
@@ -77,7 +76,9 @@ class JobInterrupt(Job):
         super().__init__(sim, "interrupt", Priority.HIGH)
 
     def rand_t_code(self):
-        return lognormvariate(self.sim.params.t_interrupt_mean, self.sim.params.t_interrupt_std)
+        return lognormvariate(
+            self.sim.params.t_interrupt_mean, self.sim.params.t_interrupt_std
+        )
 
 
 class JobRegular(Job):
@@ -85,7 +86,9 @@ class JobRegular(Job):
         super().__init__(sim, "regular", Priority.LOW)
 
     def needs_decomp(self):
-        return (not self.is_complete()) and (self.t_code > self.sim.params.t_decomposition)
+        return (not self.is_complete()) and (
+            self.t_code > self.sim.params.t_decomposition
+        )
 
     def rand_t_code(self):
         return lognormvariate(self.sim.params.t_code_mean, self.sim.params.t_code_std)

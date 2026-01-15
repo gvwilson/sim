@@ -42,6 +42,25 @@
 <p>Contributions are very welcome;
 please contact us <a href="mailto:gvwilson@third-bit.com">by email</a> or by filing an issue in <a href="https://github.com/gvwilson/sim">our repository</a>.
 All contributors must abide by our Code of Conduct.</p>
+<h2>Actions</h2>
+<p>Setup:</p>
+<div class="codehilite"><pre class=""><span></span><code>$<span class="w"> </span>git<span class="w"> </span>clone<span class="w"> </span>git@github.com:gvwilson/sim
+$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>sim
+$<span class="w"> </span>uv<span class="w"> </span>venv
+$<span class="w"> </span><span class="nb">source</span><span class="w"> </span>.venv/bin/activate
+$<span class="w"> </span>uv<span class="w"> </span>sync<span class="w"> </span>--extra<span class="w"> </span>dev<span class="w"> </span>--upgrade
+</code></pre></div>
+<p>Tasks:</p>
+<div class="codehilite"><pre class=""><span></span><code>$<span class="w"> </span>task<span class="w"> </span>--list
+</code></pre></div>
+<div class="codehilite"><pre class=""><span></span><code>build  build HTML
+check  check HTML
+clean  clean up
+fix    fix code issues
+format format code
+lint   check code
+serve  serve HTML
+</code></pre></div>
 <h2>FAQ</h2>
 <dl>
 <dt>Do you need any help?</dt>

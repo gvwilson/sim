@@ -1,6 +1,6 @@
 """Measure time from job creation to job completion."""
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from dataclasses_json import dataclass_json
 from itertools import count
 import json

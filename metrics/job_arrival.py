@@ -1,7 +1,7 @@
 """Generate JSON for generic simulation."""
 
 from collections import defaultdict
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from dataclasses_json import dataclass_json
 from itertools import count
 import json

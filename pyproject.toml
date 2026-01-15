@@ -22,7 +22,8 @@ dependencies = [
     "polars>=1.36.1",
     "prettytable>=3.17.0",
     "scipy>=1.16.3",
-    "simpy>=4.0.1"
+    "simpy>=4.0.1",
+    "taskipy>=1.14.1"
 ]
 
 [project.optional-dependencies]
@@ -49,3 +50,22 @@ skips = [
     "utilities/**",
     "uv.lock"
 ]
+
+[tool.taskipy.tasks]
+build = {help = "build HTML", cmd = "mccole build --src . --dst docs && touch docs/.nojekyll"}
+check = {help = "check HTML", cmd = "mccole check --src . --dst docs"}
+clean = {help = "clean up", cmd = """
+find . -path './.venv' -prune -o -type d -name '__pycache__' -exec rm -rf {} + &&
+find . -path './.venv' -prune -o -type d -name '.ruff_cache' -exec rm -rf {} + &&
+find . -path './.venv' -prune -o -type f -name '*~' -exec rm {} +
+"""}
+examples = {help = "re-create examples", cmd = """
+for mf in */Makefile
+do
+    make -C $(dirname $mf) all
+done
+"""}
+fix = {help = "fix code issues", cmd = "ruff check --fix ."}
+format = {help = "format code", cmd = "ruff format ."}
+lint = {help = "check code", cmd = "ruff check ."}
+serve = {help = "serve HTML", cmd = "python -m http.server -d docs"}

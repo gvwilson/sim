@@ -1,7 +1,7 @@
 """Multiple workers re-doing work with jobs going back to authors."""
 
 from collections import defaultdict
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from dataclasses_json import dataclass_json
 from itertools import count
 import json
@@ -111,9 +111,7 @@ class Job(Recorder):
         self.update("waiting_code")
 
     def update(self, state):
-        self.sim.events.append(
-            {"id": self.id, "state": state, "time": self.sim.now}
-        )
+        self.sim.events.append({"id": self.id, "state": state, "time": self.sim.now})
         if state == "complete":
             self.complete = True
 

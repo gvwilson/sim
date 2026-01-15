@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from simpy import Environment
 
+
 @dataclass
 class Log:
     env: Environment | None = None
@@ -11,4 +12,6 @@ class Log:
         self.queue_events.append({"time": self.env.now, "name": name, "length": length})
 
     def actor(self, kind, id, state):
-        self.actor_events.append({"time": self.env.now, "kind": kind, "id": id, "state": state})
+        self.actor_events.append(
+            {"time": self.env.now, "kind": kind, "id": id, "state": state}
+        )

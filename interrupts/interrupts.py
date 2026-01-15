@@ -1,7 +1,7 @@
 """Multiple workers occasionally interrupted."""
 
 from collections import defaultdict
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from dataclasses_json import dataclass_json
 from itertools import count
 import json
@@ -65,7 +65,9 @@ class Simulation(Environment):
         return random.expovariate(1.0 / self.params.t_interrupt_arrival)
 
     def rand_interrupt_duration(self):
-        return random.lognormvariate(self.params.t_interrupt_mean, self.params.t_interrupt_std)
+        return random.lognormvariate(
+            self.params.t_interrupt_mean, self.params.t_interrupt_std
+        )
 
     def rand_job_arrival(self):
         return random.expovariate(1.0 / self.params.t_job_arrival)
@@ -94,7 +96,15 @@ class Recorder:
 
 
 class Job(Recorder):
-    SAVE_KEYS = ["id", "duration", "t_create", "t_start", "t_complete", "n_interrupt", "done"]
+    SAVE_KEYS = [
+        "id",
+        "duration",
+        "t_create",
+        "t_start",
+        "t_complete",
+        "n_interrupt",
+        "done",
+    ]
 
     def __init__(self, sim, kind="regular"):
         super().__init__(sim)
@@ -111,7 +121,9 @@ class Job(Recorder):
         self.t_complete = now
 
     def interrupt(self):
-        self.sim.events.append({"id": self.id, "event": "interrupt", "time": self.sim.now})
+        self.sim.events.append(
+            {"id": self.id, "event": "interrupt", "time": self.sim.now}
+        )
         self.n_interrupt += 1
 
     def start(self):
@@ -146,6 +158,7 @@ class Interrupter(Recorder):
             yield self.sim.timeout(self.sim.rand_interrupt_arrival())
             coder = random.choice(self.sim.coders)
             coder.proc.interrupt(JobInterrupt(self.sim))
+
 
 class Coder(Recorder):
     SAVE_KEYS = ["n_interrupt"]

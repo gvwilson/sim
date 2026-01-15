@@ -4,6 +4,34 @@ Contributions are very welcome;
 please contact us [by email][email] or by filing an issue in [our repository][repo].
 All contributors must abide by our Code of Conduct.
 
+## Actions
+
+Setup:
+
+```shell
+$ git clone git@github.com:gvwilson/sim
+$ cd sim
+$ uv venv
+$ source .venv/bin/activate
+$ uv sync --extra dev --upgrade
+```
+
+Tasks:
+
+```shell
+$ task --list
+```
+```txt
+build    build HTML
+check    check HTML
+clean    clean up
+examples re-create examples
+fix      fix code issues
+format   format code
+lint     check code
+serve    serve HTML
+```
+
 ## FAQ
 
 Do you need any help?

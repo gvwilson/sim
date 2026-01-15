@@ -1,7 +1,7 @@
 """Multiple workers decomposing jobs."""
 
 from collections import defaultdict
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from dataclasses_json import dataclass_json
 from itertools import count
 import json
@@ -74,7 +74,9 @@ class Simulation(Environment):
         return random.expovariate(1.0 / self.params.t_interrupt_arrival)
 
     def rand_interrupt_duration(self):
-        return random.lognormvariate(self.params.t_interrupt_mean, self.params.t_interrupt_std)
+        return random.lognormvariate(
+            self.params.t_interrupt_mean, self.params.t_interrupt_std
+        )
 
     def rand_job_arrival(self):
         return random.expovariate(1.0 / self.params.t_job_arrival)
@@ -161,7 +163,9 @@ class JobRegular(Job):
         self.duration = self.sim.rand_job_duration()
 
     def needs_decomp(self):
-        return (not self.is_complete()) and (self.duration > self.sim.params.t_decomposition)
+        return (not self.is_complete()) and (
+            self.duration > self.sim.params.t_decomposition
+        )
 
 
 @dataclass

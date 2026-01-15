@@ -2,7 +2,7 @@
 
 <p class="subtitle" markdown="1">discrete event simulation of software development processes</p>
 
-> **2025-12:**
+> **2026-01:**
 > This material is under active development.
 > Feedback, suggestions, and corrections are very welcome,
 > either as issues in [the GitHub repository][repo]

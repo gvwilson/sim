@@ -1,6 +1,5 @@
 """Base simulator with all the features."""
 
-from dataclasses import dataclass, field
 import json
 from simpy import Environment, Store
 import sys
@@ -10,7 +9,7 @@ from base import Recorder
 from coder import Coder
 from interrupter import Interrupter
 from log import Log
-from jobs import JobFragment, JobIntegration, JobInterrupt, JobRegular
+from jobs import JobIntegration, JobInterrupt, JobRegular
 from manager import Manager
 from monitor import QueueMonitor
 from params import Params
