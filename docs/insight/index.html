@@ -80,7 +80,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">actor_events</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">"time"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">now</span><span class="p">,</span> <span class="s2">"kind"</span><span class="p">:</span> <span class="n">kind</span><span class="p">,</span> <span class="s2">"id"</span><span class="p">:</span> <span class="nb">id</span><span class="p">,</span> <span class="s2">"state"</span><span class="p">:</span> <span class="n">state</span><span class="p">})</span>
 </code></pre></div>
 <ul>
-<li>Use job fragmentation as discussed in <a href="../interrupts/">previous chapter</a></li>
+<li>Use interrupts instead of job fragmentation as discussed in <a href="../interrupts/">previous chapter</a></li>
 <li>Testers can send jobs back for rework</li>
 <li>Or for integration<ul>
 <li>In which case every programmer has to do some work</li>

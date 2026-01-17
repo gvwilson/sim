@@ -42,7 +42,7 @@ class Log:
         self.actor_events.append({"time": self.env.now, "kind": kind, "id": id, "state": state})
 ```
 
--   Use job fragmentation as discussed in [previous chapter](@/interrupts/)
+-   Use interrupts instead of job fragmentation as discussed in [previous chapter](@/interrupts/)
 -   Testers can send jobs back for rework
 -   Or for integration
     -   In which case every programmer has to do some work

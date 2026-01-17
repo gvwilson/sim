@@ -4,6 +4,7 @@ import argparse
 from itertools import product
 import polars as pl
 import random
+import sys
 
 PRECISION = 2
 
@@ -89,6 +90,10 @@ def run(params_cls, simulation_cls):
     """Run simulation for each combination of parameters."""
 
     args, params, options = _parse_args(params_cls)
+    if args.params:
+        _show_params(params_cls)
+        sys.exit(0)
+
     random.seed(params.n_seed)
     scenarios = _create_scenarios(params, options)
 
@@ -111,6 +116,12 @@ def show_frames(frames, without):
         for name, df in frames.items():
             print(f"## {name}")
             print(df.select(pl.exclude(without)))
+
+
+def _show_params(params_cls):
+    known = params_cls.__dataclass_fields__
+    for key, value in sorted(known.items()):
+        print(f"{key} ({value.default}): {value.metadata.get("doc", "---")}")
 
 
 def show_through_util(throughput, utilization):
@@ -162,6 +173,7 @@ def _parse_args(params_cls):
     parser = argparse.ArgumentParser()
     parser.add_argument("--figure", nargs="+", help="figure file(s)")
     parser.add_argument("--json", action="store_true", help="show result as JSON")
+    parser.add_argument("--params", action="store_true", help="explain parameters")
     parser.add_argument("--tables", action="store_true", help="show result as tables")
     args, overrides = parser.parse_known_args()
 
