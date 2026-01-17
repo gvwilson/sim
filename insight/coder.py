@@ -1,35 +1,45 @@
-from simpy import PriorityStore
+from simpy import Interrupt, PriorityStore
 
 from base import Actor
-from jobs import JobFragment, Placeholder
 
 
 class Coder(Actor):
     def post_init(self):
         self.queue = PriorityStore(self.sim)
+        self.stack = []
 
     def run(self):
         while True:
-            self.log("waiting")
-            job = yield from self.get()
-            job.coder_id = self.id
-            job.start()
-            if job.needs_decomp():
-                self.log("decomposing")
-                yield from self.decompose(job)
-            elif not job.is_complete():
-                self.log("working")
-                yield self.sim.timeout(job.t_code)
-                yield job.complete()
+            started = None
+            try:
+                # No work in hand, so get a new job.
+                if len(self.stack) == 0:
+                    job = yield from self.get()
+                    job.start()
+                    self.stack.append(job)
+                # Current job is complete.
+                elif self.stack[-1].is_code_complete():
+                    job = self.stack.pop()
+                    job.code_complete()
+                # Current job is incomplete, so try to finish it.
+                else:
+                    job = self.stack[-1]
+                    started = self.sim.now
+                    yield self.sim.timeout(job.t_code - job.t_code_done)
+                    job.code_complete()
 
-    def decompose(self, job):
-        size = self.sim.params.t_decomposition
-        num = int(job.t_code / size)
-        extra = job.t_code - (num * size)
-        durations = [extra, *[size for _ in range(num)]]
-        placeholder = Placeholder(job=job, count=len(durations))
-        for d in durations:
-            yield self.queue.put(JobFragment(self, placeholder, d))
+            except Interrupt as exc:
+                # Some work has been done on the current job, so save it.
+                if (len(self.stack) > 0) and (started is not None):
+                    now = self.sim.now
+                    job = self.stack[-1]
+                    job.interrupt()
+                    job.done += now - started
+
+                # Put the interrupting job on the stack.
+                job = exc.cause
+                job.start()
+                self.stack.append(job)
 
     def get(self):
         new_req = self.sim.code_queue.get()

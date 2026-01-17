@@ -329,4 +329,5 @@ class Simulation(Environment):
 
 -   So is this better than using interrupts?
     -   250 lines for decomposition vs. 212 for interrupts
-    -   Decomposition approach was a lot simpler to debug
+    -   Decomposition approach was simpler to debug
+    -   But tracking sub-jobs is harder
