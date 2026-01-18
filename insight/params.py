@@ -8,7 +8,6 @@ class Params:
     n_coders: int = field(default=2, metadata={"doc": "number of coders"})
     n_iter: int = field(default=1, metadata={"doc": "number of simulations"})
     n_seed: int = field(default=97531, metadata={"doc": "RNG seed"})
-    n_testers: int = field(default=2, metadata={"doc": "number of testers"})
     p_rework: float = field(default=0.5, metadata={"doc": "probability of job rework"})
     t_code_interval: float = field(default=2.0, metadata={"doc": "mean time between jobs"})
     t_code_mean: float = field(default=0.5, metadata={"doc": "mean code completion duration"})

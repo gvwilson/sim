@@ -6,7 +6,7 @@ from util import Priority
 
 
 class Job(Recorder):
-    SAVE_KEYS = ["kind", "t_create", "t_start", "t_code", "t_code_done", "t_test"]
+    SAVE_KEYS = ["kind", "t_create", "t_start", "t_code", "t_code_done"]
 
     def __init__(self, sim, kind, priority, t_code=None):
         super().__init__(sim)
@@ -14,23 +14,22 @@ class Job(Recorder):
         self.priority = priority
         self.t_code = self.rand_t_code() if t_code is None else t_code
         self.t_code_done = 0
-        self.t_test = self.rand_t_test(self.t_code)
         self.t_create = self.sim.now
         self.t_start = None
 
-    def code_complete(self):
+    def __str__(self):
+        return f"{self.__class__.__name__}({self.t_code}>={self.t_code_done})"
+
+    def complete(self):
         self.t_code_done = self.t_code
 
-    def is_code_complete(self):
+    def is_complete(self):
         return self.t_code_done == self.t_code
 
     def json(self):
         return {key: getattr(self, key) for key in self.SAVE_KEYS}
 
     def rand_t_code(self):
-        return None
-
-    def rand_t_test(self, t_code):
         return None
 
     def start(self):
@@ -66,6 +65,3 @@ class JobRegular(Job):
 
     def rand_t_code(self):
         return lognormvariate(self.sim.params.t_code_mean, self.sim.params.t_code_std)
-
-    def rand_t_test(self, t_code):
-        return uniform(0.5 * t_code, 1.5 * t_code)

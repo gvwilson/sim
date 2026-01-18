@@ -13,7 +13,6 @@ from manager import Manager
 from monitor import QueueMonitor
 from params import Params
 from recorder import Recorder
-from tester import Tester
 
 
 class Simulation(Environment):
@@ -21,10 +20,8 @@ class Simulation(Environment):
         super().__init__()
         self.params = Params()
         self.code_queue = None
-        self.test_queue = None
         self.log = Log(env=self)
         self.coders = []
-        self.testers = []
 
     def do_nothing(self):
         return self.timeout(0)
@@ -32,12 +29,10 @@ class Simulation(Environment):
     def simulate(self):
         Recorder.reset()
         self.code_queue = Store(self)
-        self.test_queue = Store(self)
         Manager(self)
         Interrupter(self)
         QueueMonitor(self)
         self.coders = [Coder(self) for _ in range(self.params.n_coders)]
-        self.testers = [Tester(self) for _ in range(self.params.n_testers)]
         self.run(until=self.params.t_sim)
 
     def result(self):

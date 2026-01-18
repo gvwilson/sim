@@ -14,20 +14,24 @@ class Coder(Actor):
             try:
                 # No work in hand, so get a new job.
                 if len(self.stack) == 0:
+                    self.log("getting")
                     job = yield from self.get()
                     job.start()
                     self.stack.append(job)
                 # Current job is complete.
-                elif self.stack[-1].is_code_complete():
+                elif self.stack[-1].is_complete():
+                    self.log("finishing")
                     job = self.stack.pop()
-                    job.code_complete()
                 # Current job is incomplete, so try to finish it.
                 else:
+                    self.log("working")
                     job = self.stack[-1]
                     started = self.sim.now
                     yield self.sim.timeout(job.t_code - job.t_code_done)
+                    job.complete()
 
             except Interrupt as exc:
+                self.log("interrupted")
                 # Some work has been done on the current job, so save it.
                 if (len(self.stack) > 0) and (started is not None):
                     job = self.stack[-1]
