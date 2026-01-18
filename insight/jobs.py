@@ -1,11 +1,12 @@
 from dataclasses import dataclass
 from random import lognormvariate, uniform
 
-from base import Priority, Recorder
+from recorder import Recorder
+from util import Priority
 
 
 class Job(Recorder):
-    SAVE_KEYS = ["kind", "t_create", "t_start", "t_code_complete", "t_code", "t_test"]
+    SAVE_KEYS = ["kind", "t_create", "t_start", "t_code", "t_code_done", "t_test"]
 
     def __init__(self, sim, kind, priority, t_code=None):
         super().__init__(sim)
@@ -13,20 +14,15 @@ class Job(Recorder):
         self.priority = priority
         self.t_code = self.rand_t_code() if t_code is None else t_code
         self.t_code_done = 0
-        self.t_code_complete = None
         self.t_test = self.rand_t_test(self.t_code)
         self.t_create = self.sim.now
         self.t_start = None
 
-    def __str__(self):
-        return f"{self.__class__.__name__}(t_code {self.t_code:.2f} t_code_done {self.t_code_done:.2f} t_code_complete {self.t_code_complete})"
-
     def code_complete(self):
         self.t_code_done = self.t_code
-        self.t_code_complete = self.sim.now
 
     def is_code_complete(self):
-        return self.t_code_complete is not None
+        return self.t_code_done == self.t_code
 
     def json(self):
         return {key: getattr(self, key) for key in self.SAVE_KEYS}

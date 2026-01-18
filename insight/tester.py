@@ -1,4 +1,4 @@
-from base import Actor
+from actor import Actor
 from jobs import JobIntegration
 
 

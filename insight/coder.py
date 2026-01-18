@@ -1,6 +1,6 @@
 from simpy import Interrupt, PriorityStore
 
-from base import Actor
+from actor import Actor
 
 
 class Coder(Actor):
@@ -26,17 +26,15 @@ class Coder(Actor):
                     job = self.stack[-1]
                     started = self.sim.now
                     yield self.sim.timeout(job.t_code - job.t_code_done)
-                    job.code_complete()
 
             except Interrupt as exc:
                 # Some work has been done on the current job, so save it.
                 if (len(self.stack) > 0) and (started is not None):
-                    now = self.sim.now
                     job = self.stack[-1]
-                    job.interrupt()
-                    job.done += now - started
+                    job.t_code_done += self.sim.now - started
 
                 # Put the interrupting job on the stack.
+                import sys
                 job = exc.cause
                 job.start()
                 self.stack.append(job)
