@@ -43,7 +43,7 @@ class Job(Recorder):
 
 
 class JobIntegration(Job):
-    def __init__(selef, sim):
+    def __init__(self, sim):
         super().__init__(sim, "integration", Priority.LOW)
 
     def rand_t_code(self):
@@ -69,9 +69,3 @@ class JobRegular(Job):
 
     def rand_t_test(self, t_code):
         return uniform(0.5 * t_code, 1.5 * t_code)
-
-
-@dataclass
-class Placeholder:
-    job: Job
-    count: int

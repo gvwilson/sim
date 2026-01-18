@@ -53,12 +53,12 @@ class Log:
 
 ```{.py data-file=params.py}
 class Params:
-    t_code_arrival: float = 2.0
+    t_code_interval: float = 2.0
     t_code_mean: float = 0.5
     t_code_std: float = 0.6
     t_decomposition: float = 0.5
     t_integration: float = 0.2
-    t_interrupt_arrival: float = 5.0
+    t_interrupt_interval: float = 5.0
     t_interrupt_mean: float = 0.2
     t_interrupt_std: float = 0.1
     t_queue_monitor: float = 5.0

@@ -245,12 +245,12 @@ coder gets job-1 at 8.52
 
 ```{.py data-file=random_interaction.py}
 …other parameters as before…
-T_JOB_ARRIVAL = 2.0
+T_JOB_INTERVAL = 2.0
 T_JOB_MEAN = 0.5
 T_JOB_STD = 0.6
 
 def rand_job_arrival():
-    return random.expovariate(1.0 / T_JOB_ARRIVAL)
+    return random.expovariate(1.0 / T_JOB_INTERVAL)
 
 def rand_job_duration():
     return random.lognormvariate(T_JOB_MEAN, T_JOB_STD)

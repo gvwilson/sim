@@ -16,8 +16,8 @@ import util
 class Params:
     n_seed: int = 97531
     n_coder: int = 2
-    t_interrupt_arrival: float = 5.0
-    t_job_arrival: float = 2.0
+    t_interrupt_interval: float = 5.0
+    t_job_interval: float = 2.0
     t_job_mean: float = 0.5
     t_job_std: float = 0.6
     t_monitor: float = 5.0
@@ -58,10 +58,10 @@ class Simulation(Environment):
         }
 
     def rand_interrupt_arrival(self):
-        return random.expovariate(1.0 / self.params.t_interrupt_arrival)
+        return random.expovariate(1.0 / self.params.t_interrupt_interval)
 
     def rand_job_arrival(self):
-        return random.expovariate(1.0 / self.params.t_job_arrival)
+        return random.expovariate(1.0 / self.params.t_job_interval)
 
     def rand_job_duration(self):
         return random.lognormvariate(self.params.t_job_mean, self.params.t_job_std)

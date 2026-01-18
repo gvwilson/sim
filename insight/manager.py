@@ -12,4 +12,4 @@ class Manager(Actor):
             yield self.sim.timeout(self.rand_t_arrival())
 
     def rand_t_arrival(self):
-        return expovariate(1.0 / self.sim.params.t_code_arrival)
+        return expovariate(1.0 / self.sim.params.t_code_interval)

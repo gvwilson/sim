@@ -276,12 +276,12 @@ coder gets job-1 at 8.52
 <li>Parameters and randomization functions</li>
 </ul>
 <div class="codehilite"><pre class=""><span></span><code><span class="err">…</span><span class="n">other</span> <span class="n">parameters</span> <span class="k">as</span> <span class="n">before</span><span class="err">…</span>
-<span class="n">T_JOB_ARRIVAL</span> <span class="o">=</span> <span class="mf">2.0</span>
+<span class="n">T_JOB_INTERVAL</span> <span class="o">=</span> <span class="mf">2.0</span>
 <span class="n">T_JOB_MEAN</span> <span class="o">=</span> <span class="mf">0.5</span>
 <span class="n">T_JOB_STD</span> <span class="o">=</span> <span class="mf">0.6</span>
 
 <span class="k">def</span><span class="w"> </span><span class="nf">rand_job_arrival</span><span class="p">():</span>
-    <span class="k">return</span> <span class="n">random</span><span class="o">.</span><span class="n">expovariate</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">T_JOB_ARRIVAL</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">random</span><span class="o">.</span><span class="n">expovariate</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">T_JOB_INTERVAL</span><span class="p">)</span>
 
 <span class="k">def</span><span class="w"> </span><span class="nf">rand_job_duration</span><span class="p">():</span>
     <span class="k">return</span> <span class="n">random</span><span class="o">.</span><span class="n">lognormvariate</span><span class="p">(</span><span class="n">T_JOB_MEAN</span><span class="p">,</span> <span class="n">T_JOB_STD</span><span class="p">)</span>

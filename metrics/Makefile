@@ -38,14 +38,14 @@ ${JOB_ARRIVAL_NARROW}: job_arrival.py
 	python job_arrival.py \
 	--figure job_arrival_narrow.svg \
 	--table \
-	t_job_arrival=1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0 t_sim=200 \
+	t_job_interval=1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0 t_sim=200 \
 	> job_arrival_narrow.txt
 
 ${JOB_ARRIVAL_WIDE}: job_arrival.py
 	python job_arrival.py \
 	--figure job_arrival_wide.svg \
 	--table \
-	t_job_arrival=0.5,1.0,2.0,3.0,4.0 t_sim=200 \
+	t_job_interval=0.5,1.0,2.0,3.0,4.0 t_sim=200 \
 	> job_arrival_wide.txt
 
 clean:

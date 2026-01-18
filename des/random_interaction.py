@@ -6,14 +6,14 @@ from simpy import Environment, Store
 
 
 RNG_SEED = 98765
-T_JOB_ARRIVAL = 2.0
+T_JOB_INTERVAL = 2.0
 T_JOB_MEAN = 0.5
 T_JOB_STD = 0.6
 T_SIM = 10
 
 
 def rand_job_arrival():
-    return random.expovariate(1.0 / T_JOB_ARRIVAL)
+    return random.expovariate(1.0 / T_JOB_INTERVAL)
 
 
 def rand_job_duration():

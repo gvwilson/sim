@@ -16,7 +16,7 @@ import util
 @dataclass
 class Params:
     n_seed: int = 13542
-    t_job_arrival: float = 2.0
+    t_job_interval: float = 2.0
     t_job_mean: float = 0.5
     t_job_std: float = 0.6
     t_sim: float = 10
@@ -39,7 +39,7 @@ class Simulation(Environment):
         return {"jobs": [job.json() for job in Job._all]}
 
     def rand_job_arrival(self):
-        return random.expovariate(1.0 / self.params.t_job_arrival)
+        return random.expovariate(1.0 / self.params.t_job_interval)
 
     def rand_job_duration(self):
         return random.lognormvariate(self.params.t_job_mean, self.params.t_job_std)

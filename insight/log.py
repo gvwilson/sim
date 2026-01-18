@@ -8,10 +8,10 @@ class Log:
     queue_events: list = field(default_factory=list)
     actor_events: list = field(default_factory=list)
 
-    def queue(self, name, length):
-        self.queue_events.append({"time": self.env.now, "name": name, "length": length})
-
     def actor(self, kind, id, state):
         self.actor_events.append(
             {"time": self.env.now, "kind": kind, "id": id, "state": state}
         )
+
+    def queue(self, name, length):
+        self.queue_events.append({"time": self.env.now, "name": name, "length": length})

@@ -13,12 +13,12 @@
 ```{.py .python data-file=discard.py}
 class Params:
     # …as before…
-    t_interrupt_arrival: float = 5.0
+    t_interrupt_interval: float = 5.0
 
 class Simulation(Environment):
     # …as before…
     def rand_interrupt_arrival(self):
-        return random.expovariate(1.0 / self.params.t_interrupt_arrival)
+        return random.expovariate(1.0 / self.params.t_interrupt_interval)
 ```
 
 -   But we need a way to get at the coder's process (i.e., the generator) in order to interrupt it
@@ -99,7 +99,7 @@ class Coder(Recorder):
 ```{.py data-file=interrupts.py}
 class Params:
     # …as before…
-    t_interrupt_arrival: float = 5.0
+    t_interrupt_interval: float = 5.0
     t_interrupt_mean: float = 0.2
     t_interrupt_std: float = 0.1
 

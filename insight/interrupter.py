@@ -12,4 +12,4 @@ class Interrupter(Actor):
             coder.proc.interrupt(JobInterrupt(self.sim))
 
     def rand_t_arrival(self):
-        return expovariate(1.0 / self.sim.params.t_interrupt_arrival)
+        return expovariate(1.0 / self.sim.params.t_interrupt_interval)
