@@ -32,7 +32,7 @@
 ## G
 
 <span id="generator">generator</span>
-:   FIXME
+: Processes are described by simple Python generators. You can call them process function or process method, depending on whether it is a normal function or method of a class. During their lifetime, they create events and yield them in order to wait for them to occur. (Extracted from Simpy documentation at [Basic concepts](https://simpy.readthedocs.io/en/4.1.1/simpy_intro/basic_concepts.html))
 
 ## I
 
