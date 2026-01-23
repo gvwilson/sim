@@ -28,6 +28,7 @@
     -   [Delay](g:delay): how long from job creation to job start?
     -   [Throughput](g:throughput): how many jobs are completed per unit time?
     -   [Utilization](g:utilization): how busy are the people on the team?
+-   **Candidates to be included here: WIP in relation to both Delay and Throughput, Cycle time, Burn down chart / Burn up chart, Cummulative Flow Diagrama (CFD), interdependencies between tasks**
 
 ## Learner Profile
 
