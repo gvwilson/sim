@@ -7,33 +7,68 @@
 -   Create a SimPy `Environment`
 -   Create one or more [generators](g:generator) for it to run
     -   These will almost always need the environment
+    -   **Environment works as event loop in Javascript ([Event discrete simulation with SimPy by Stefan Scherfke on EuroPython 2014](https://www.youtube.com/watch?v=Bk91DoAEcjY))**
 -   Pass each generator to `env.process(…)`
 -   Call `env.run(…)` and specify simulation duration
 
+[![Open in molab](https://molab.marimo.io/molab-shield.svg)](https://molab.marimo.io/notebooks/nb_KA9jrHF8iGGMvgZ1DL1DF5)
 ```{.py data-file=ask_for_work.py}
+"""
+A developer ask for work at regular intervals.
+A Scrum Master answers one single time informing there is available and ready work.
+There is no interaction between them at this moment.
+"""
+
 from simpy import Environment
 
+# Duration of simulation is 30 units of time
 T_SIM = 30
+
+# Time between coder asks for more available work. 8 units of time
+# if unit of time is hour, it means that coder asks once per day
 T_WAIT = 8
 
 
 def coder(env):
+    """
+    A generator that emulates some behavior of a code such as asking for more available work
+    """
     while True:
         print(f"{env.now}: Is there any work?")
         yield env.timeout(T_WAIT)
 
 
+def scrum_master(env):
+    """
+    A generator that emulates some behavior of a Scrum Master such as making sure that
+    there is available work for the developers
+    (here concepts like Definition of Ready - DoR jumps in)
+    """
+    yield env.timeout(14)
+    print(f"{env.now}: There is a new task available for you, developer.")
+
+
 if __name__ == "__main__":
+    # Create a SimPy environment
     env = Environment()
+
+    # Create a process where coder is the generator function
     env.process(coder(env))
+
+    # Create a process where a scrum master is the generator function
+    env.process(scrum_master(env))
+
+    # Run the simulation for the specified duration
     env.run(until=T_SIM)
 ```
+<p style="text-align: right"><strong>See content of this file at <a href="https://github.com/gvwilson/sim/blob/main/des/ask_for_work.py">ask_for_work.py</a><strong></p>
 
 -   Output
 
 ```{.txt data-file=ask_for_work.txt}
 0: Is there any work?
 8: Is there any work?
+14: There is a new task available for you, developer.
 16: Is there any work?
 24: Is there any work?
 ```
@@ -41,10 +76,13 @@ if __name__ == "__main__":
 ## Interaction
 
 -   Manager creates jobs and puts them in a queue
+    -   **Maybe it would be good to be explicit of how jobs are organized (pooled for a sprint in Scrum process or pulled by devs in a continuous queue)**
     -   Jobs arrive at regular intervals
     -   Each job has a duration
+    -   **Is there any wish to emulate a planning poker to give estimated duration of jobs?**
     -   Give each job an ID for tracking
 -   Coder takes jobs from the queue in order and does them
+    -   **How should we handle coder specialization / seniority to decide if a job should be assigned or not to a given coder?**
 -   Queue is implemented as a SimPy `Store` with `.put()` and `.get()` methods
 
 <div class="callout" markdown="1">
@@ -103,6 +141,8 @@ def coder(env, queue):
 ```
 
 -   Set up and run
+
+[![Open in molab](https://molab.marimo.io/molab-shield.svg)](https://molab.marimo.io/notebooks/nb_JRMhYdHfvtGDLSvEuQsFdR)
 
 ```{.py data-file=simple_interaction.py}
 if __name__ == "__main__":

@@ -45,45 +45,85 @@
 <li>Create a SimPy <code>Environment</code></li>
 <li>Create one or more <a href="../glossary/#generator">generators</a> for it to run<ul>
 <li>These will almost always need the environment</li>
+<li><strong>Environment works as event loop in Javascript (<a href="https://www.youtube.com/watch?v=Bk91DoAEcjY">Event discrete simulation with SimPy by Stefan Scherfke on EuroPython 2014</a>)</strong></li>
 </ul>
 </li>
 <li>Pass each generator to <code>env.process(…)</code></li>
 <li>Call <code>env.run(…)</code> and specify simulation duration</li>
 </ul>
-<div class="codehilite"><pre class=""><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">simpy</span><span class="w"> </span><span class="kn">import</span> <span class="n">Environment</span>
+<p><a href="https://molab.marimo.io/notebooks/nb_KA9jrHF8iGGMvgZ1DL1DF5"><img alt="Open in molab" src="https://molab.marimo.io/molab-shield.svg"/></a></p>
+<div class="codehilite"><pre class=""><span></span><code><span class="sd">"""</span>
+<span class="sd">A developer ask for work at regular intervals.</span>
+<span class="sd">A Scrum Master answers one single time informing there is available and ready work.</span>
+<span class="sd">There is no interaction between them at this moment.</span>
+<span class="sd">"""</span>
 
+<span class="kn">from</span><span class="w"> </span><span class="nn">simpy</span><span class="w"> </span><span class="kn">import</span> <span class="n">Environment</span>
+
+<span class="c1"># Duration of simulation is 30 units of time</span>
 <span class="n">T_SIM</span> <span class="o">=</span> <span class="mi">30</span>
+
+<span class="c1"># Time between coder asks for more available work. 8 units of time</span>
+<span class="c1"># if unit of time is hour, it means that coder asks once per day</span>
 <span class="n">T_WAIT</span> <span class="o">=</span> <span class="mi">8</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">coder</span><span class="p">(</span><span class="n">env</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    A generator that emulates some behavior of a code such as asking for more available work</span>
+<span class="sd">    """</span>
     <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
         <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">env</span><span class="o">.</span><span class="n">now</span><span class="si">}</span><span class="s2">: Is there any work?"</span><span class="p">)</span>
         <span class="k">yield</span> <span class="n">env</span><span class="o">.</span><span class="n">timeout</span><span class="p">(</span><span class="n">T_WAIT</span><span class="p">)</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">scrum_master</span><span class="p">(</span><span class="n">env</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    A generator that emulates some behavior of a Scrum Master such as making sure that</span>
+<span class="sd">    there is available work for the developers</span>
+<span class="sd">    (here concepts like Definition of Ready - DoR jumps in)</span>
+<span class="sd">    """</span>
+    <span class="k">yield</span> <span class="n">env</span><span class="o">.</span><span class="n">timeout</span><span class="p">(</span><span class="mi">14</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">env</span><span class="o">.</span><span class="n">now</span><span class="si">}</span><span class="s2">: There is a new task available for you, developer."</span><span class="p">)</span>
+
+
 <span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">"__main__"</span><span class="p">:</span>
+    <span class="c1"># Create a SimPy environment</span>
     <span class="n">env</span> <span class="o">=</span> <span class="n">Environment</span><span class="p">()</span>
+
+    <span class="c1"># Create a process where coder is the generator function</span>
     <span class="n">env</span><span class="o">.</span><span class="n">process</span><span class="p">(</span><span class="n">coder</span><span class="p">(</span><span class="n">env</span><span class="p">))</span>
+
+    <span class="c1"># Create a process where a scrum master is the generator function</span>
+    <span class="n">env</span><span class="o">.</span><span class="n">process</span><span class="p">(</span><span class="n">scrum_master</span><span class="p">(</span><span class="n">env</span><span class="p">))</span>
+
+    <span class="c1"># Run the simulation for the specified duration</span>
     <span class="n">env</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">until</span><span class="o">=</span><span class="n">T_SIM</span><span class="p">)</span>
 </code></pre></div>
+<p style="text-align: right"><strong>See content of this file at <a href="https://github.com/gvwilson/sim/blob/main/des/ask_for_work.py">ask_for_work.py</a><strong></strong></strong></p>
 <ul>
 <li>Output</li>
 </ul>
 <div class="codehilite"><pre class=""><span></span><code><span class="mi">0</span><span class="o">:</span><span class="w"> </span><span class="n">Is</span><span class="w"> </span><span class="n">there</span><span class="w"> </span><span class="n">any</span><span class="w"> </span><span class="n">work</span><span class="o">?</span>
 <span class="mi">8</span><span class="o">:</span><span class="w"> </span><span class="n">Is</span><span class="w"> </span><span class="n">there</span><span class="w"> </span><span class="n">any</span><span class="w"> </span><span class="n">work</span><span class="o">?</span>
+<span class="mi">14</span><span class="o">:</span><span class="w"> </span><span class="n">There</span><span class="w"> </span><span class="k">is</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">task</span><span class="w"> </span><span class="n">available</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">you</span><span class="o">,</span><span class="w"> </span><span class="n">developer</span><span class="o">.</span>
 <span class="mi">16</span><span class="o">:</span><span class="w"> </span><span class="n">Is</span><span class="w"> </span><span class="n">there</span><span class="w"> </span><span class="n">any</span><span class="w"> </span><span class="n">work</span><span class="o">?</span>
 <span class="mi">24</span><span class="o">:</span><span class="w"> </span><span class="n">Is</span><span class="w"> </span><span class="n">there</span><span class="w"> </span><span class="n">any</span><span class="w"> </span><span class="n">work</span><span class="o">?</span>
 </code></pre></div>
 <h2>Interaction</h2>
 <ul>
 <li>Manager creates jobs and puts them in a queue<ul>
+<li><strong>Maybe it would be good to be explicit of how jobs are organized (pooled for a sprint in Scrum process or pulled by devs in a continuous queue)</strong></li>
 <li>Jobs arrive at regular intervals</li>
 <li>Each job has a duration</li>
+<li><strong>Is there any wish to emulate a planning poker to give estimated duration of jobs?</strong></li>
 <li>Give each job an ID for tracking</li>
 </ul>
 </li>
-<li>Coder takes jobs from the queue in order and does them</li>
+<li>Coder takes jobs from the queue in order and does them<ul>
+<li><strong>How should we handle coder specialization / seniority to decide if a job should be assigned or not to a given coder?</strong></li>
+</ul>
+</li>
 <li>Queue is implemented as a SimPy <code>Store</code> with <code>.put()</code> and <code>.get()</code> methods</li>
 </ul>
 <div class="callout">
@@ -141,6 +181,7 @@
 <ul>
 <li>Set up and run</li>
 </ul>
+<p><a href="https://molab.marimo.io/notebooks/nb_JRMhYdHfvtGDLSvEuQsFdR"><img alt="Open in molab" src="https://molab.marimo.io/molab-shield.svg"/></a></p>
 <div class="codehilite"><pre class=""><span></span><code><span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">"__main__"</span><span class="p">:</span>
     <span class="n">env</span> <span class="o">=</span> <span class="n">Environment</span><span class="p">()</span>
     <span class="n">queue</span> <span class="o">=</span> <span class="n">Store</span><span class="p">(</span><span class="n">env</span><span class="p">)</span>
