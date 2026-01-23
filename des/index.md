@@ -197,6 +197,33 @@ coder gets job-2 at 16
 
 -   But even this is hard to read
 
+**Alternative way of presenting**:
+```
+Queue items before manager creates one more job: []
+At   0  , manager creates job  0
+
+Queue items before coder takes one job: [job  0 ]
+At   0  , coder gets job  0  without waiting
+
+Queue items before manager creates one more job: []
+At   6  , manager creates job  1
+At   8  , code completes job  0
+
+Queue items before coder takes one job: [job  1 ]
+At   8  , coder gets job  1  without waiting
+
+Queue items before manager creates one more job: []
+At  12  , manager creates job  2
+At  16  , code completes job  1
+
+Queue items before coder takes one job: [job  2 ]
+At  16  , coder gets job  2  without waiting
+
+Queue items before manager creates one more job: []
+At  18  , manager creates job  3
+```
+
+
 ## Uniform Rates
 
 -   Use ranges for creation times and job durations
