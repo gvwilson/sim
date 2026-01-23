@@ -34,6 +34,7 @@
 
 -   Shae, 20, is starting the third year of an undergraduate degree in computer science
     after doing a one-semester work placement at a local mobile application development company.
+    - **What is typical for a third year undergraduate student in US and Canada? What is expected to be a foundational knowledge?**
 -   Shae is comfortable with object-oriented programming in Python,
     and did well in their introductory courses on databases and web programming.
     They like working on homework assignments with friends,
