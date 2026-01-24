@@ -176,7 +176,7 @@
         <span class="n">job</span> <span class="o">=</span> <span class="k">yield</span> <span class="n">queue</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
         <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"coder gets </span><span class="si">{</span><span class="n">job</span><span class="si">}</span><span class="s2"> at </span><span class="si">{</span><span class="n">env</span><span class="o">.</span><span class="n">now</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
         <span class="k">yield</span> <span class="n">env</span><span class="o">.</span><span class="n">timeout</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">duration</span><span class="p">)</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"code completes </span><span class="si">{</span><span class="n">job</span><span class="si">}</span><span class="s2"> at </span><span class="si">{</span><span class="n">env</span><span class="o">.</span><span class="n">now</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"coder completes </span><span class="si">{</span><span class="n">job</span><span class="si">}</span><span class="s2"> at </span><span class="si">{</span><span class="n">env</span><span class="o">.</span><span class="n">now</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </code></pre></div>
 <ul>
 <li>Set up and run</li>
@@ -196,11 +196,11 @@
 coder waits at 0
 coder gets job-0 at 0
 manager creates job-1 at 6
-code completes job-0 at 8
+coder completes job-0 at 8
 coder waits at 8
 coder gets job-1 at 8
 manager creates job-2 at 12
-code completes job-1 at 16
+coder completes job-1 at 16
 coder waits at 16
 coder gets job-2 at 16
 manager creates job-3 at 18
@@ -240,14 +240,14 @@ At   0  , coder gets job  0  without waiting
 
 Queue items before manager creates one more job: []
 At   6  , manager creates job  1
-At   8  , code completes job  0
+At   8  , coder completes job  0
 
 Queue items before coder takes one job: [job  1 ]
 At   8  , coder gets job  1  without waiting
 
 Queue items before manager creates one more job: []
 At  12  , manager creates job  2
-At  16  , code completes job  1
+At  16  , coder completes job  1
 
 Queue items before coder takes one job: [job  2 ]
 At  16  , coder gets job  2  without waiting

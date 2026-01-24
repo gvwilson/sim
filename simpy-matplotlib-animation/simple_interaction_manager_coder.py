@@ -101,7 +101,7 @@ def coder(env, queue, tracing=True):
 
         if tracing:
             print(
-                f"At {WHITE_ON_BLACK} {completed_job_at:>2}  {cd.Style.reset}, code completes {job}"
+                f"At {WHITE_ON_BLACK} {completed_job_at:>2}  {cd.Style.reset}, coder completes {job}"
             )
 
 

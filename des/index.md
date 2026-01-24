@@ -137,7 +137,7 @@ def coder(env, queue):
         job = yield queue.get()
         print(f"coder gets {job} at {env.now}")
         yield env.timeout(job.duration)
-        print(f"code completes {job} at {env.now}")
+        print(f"coder completes {job} at {env.now}")
 ```
 
 -   Set up and run
@@ -160,11 +160,11 @@ manager creates job-0 at 0
 coder waits at 0
 coder gets job-0 at 0
 manager creates job-1 at 6
-code completes job-0 at 8
+coder completes job-0 at 8
 coder waits at 8
 coder gets job-1 at 8
 manager creates job-2 at 12
-code completes job-1 at 16
+coder completes job-1 at 16
 coder waits at 16
 coder gets job-2 at 16
 manager creates job-3 at 18
@@ -207,14 +207,14 @@ At   0  , coder gets job  0  without waiting
 
 Queue items before manager creates one more job: []
 At   6  , manager creates job  1
-At   8  , code completes job  0
+At   8  , coder completes job  0
 
 Queue items before coder takes one job: [job  1 ]
 At   8  , coder gets job  1  without waiting
 
 Queue items before manager creates one more job: []
 At  12  , manager creates job  2
-At  16  , code completes job  1
+At  16  , coder completes job  1
 
 Queue items before coder takes one job: [job  2 ]
 At  16  , coder gets job  2  without waiting

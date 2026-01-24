@@ -35,7 +35,7 @@ def coder(env, queue):
         job = yield queue.get()
         print(f"coder gets {job} at {env.now:.2f}")
         yield env.timeout(job.duration)
-        print(f"code completes {job} at {env.now:.2f}")
+        print(f"coder completes {job} at {env.now:.2f}")
 
 
 if __name__ == "__main__":

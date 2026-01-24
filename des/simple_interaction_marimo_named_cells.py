@@ -67,7 +67,7 @@ def coder(env, queue):
         job = yield queue.get()
         print(f"coder gets {job} at {env.now}")
         yield env.timeout(job.duration)
-        print(f"code completes {job} at {env.now}")
+        print(f"coder completes {job} at {env.now}")
 
 
 @app.cell
