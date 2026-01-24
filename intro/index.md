@@ -28,11 +28,13 @@
     -   [Delay](g:delay): how long from job creation to job start?
     -   [Throughput](g:throughput): how many jobs are completed per unit time?
     -   [Utilization](g:utilization): how busy are the people on the team?
+-   **Candidates to be included here: WIP in relation to both Delay and Throughput, Cycle time, Burn down chart / Burn up chart, Cummulative Flow Diagrama (CFD), interdependencies between tasks**
 
 ## Learner Profile
 
 -   Shae, 20, is starting the third year of an undergraduate degree in computer science
     after doing a one-semester work placement at a local mobile application development company.
+    - **What is typical for a third year undergraduate student in US and Canada? What is expected to be a foundational knowledge?**
 -   Shae is comfortable with object-oriented programming in Python,
     and did well in their introductory courses on databases and web programming.
     They like working on homework assignments with friends,

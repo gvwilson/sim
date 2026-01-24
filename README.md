@@ -17,7 +17,7 @@
 1.  [Simple Metrics](@/metrics/): analyzing simple metrics.
 1.  [Exploring Scenarios](@/scenarios/): exploring other scenarios.
 1.  [Handling Interrupts](@/interrupts/): because that's just how life is.
-1.  [Insights](@/insight/): building resuable insights.
+1.  [Insights](@/insight/): building reusable insights.
 1.  [Conclusion](@/finale/): where we've been and what comes next.
 
 </div>
