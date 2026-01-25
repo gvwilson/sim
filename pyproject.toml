@@ -29,7 +29,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "genson>=1.3.0",
-    "mccole>=1.3.2",
+    "mccole>=1.4.3",
     "ruff>=0.1.0"
 ]
 
