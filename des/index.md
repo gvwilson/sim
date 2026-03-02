@@ -4,28 +4,32 @@
 
 ## Our First Simulation
 
--   Create a SimPy `Environment`
--   Create one or more [generators](g:generator) for it to run
-    -   These will almost always need the environment
--   Pass each generator to `env.process(…)`
+-   Create an `asimpy` `Environment`
+-   Define one or more [coroutines](g:coroutine) by subclassing `Process` and implementing `async def run(self)`
+    -   These access the environment as `self._env`
+-   Instantiate each `Process` subclass with the environment
 -   Call `env.run(…)` and specify simulation duration
 
 ```{.py data-file=ask_for_work.py}
-from simpy import Environment
+from asimpy import Environment, Process
 
 T_SIM = 30
 T_WAIT = 8
 
 
-def coder(env):
-    while True:
-        print(f"{env.now}: Is there any work?")
-        yield env.timeout(T_WAIT)
+class Coder(Process):
+    def init(self):
+        self.sim = self._env
+
+    async def run(self):
+        while True:
+            print(f"{self.sim.now}: Is there any work?")
+            await self.timeout(T_WAIT)
 
 
 if __name__ == "__main__":
     env = Environment()
-    env.process(coder(env))
+    Coder(env)
     env.run(until=T_SIM)
 ```
 
@@ -45,13 +49,13 @@ if __name__ == "__main__":
     -   Each job has a duration
     -   Give each job an ID for tracking
 -   Coder takes jobs from the queue in order and does them
--   Queue is implemented as a SimPy `Store` with `.put()` and `.get()` methods
+-   Queue is implemented as an `asimpy` `Queue` with `async put()` and `async get()` methods
 
 <div class="callout" markdown="1">
 
--   A process (generator) only gives control back to SimPy when it yields
--   So processes must `yield` the results of `queue.put()` and `queue.get()`
-    -   Writing `job = queue.get()` rather than `job = yield queue.get()` is a common mistake
+-   A process (coroutine) only gives control back to `asimpy` when it `await`s
+-   So processes must `await` the results of `queue.put()` and `queue.get()`
+    -   Writing `job = queue.get()` rather than `job = await queue.get()` is a common mistake
 
 </div>
 
@@ -79,27 +83,35 @@ class Job:
         return f"job-{self.id}"
 ```
 
--   `manager` process
+-   `Manager` process
 
 ```{.py data-file=simple_interaction.py}
-def manager(env, queue):
-    while True:
-        job = Job()
-        print(f"manager creates {job} at {env.now}")
-        yield queue.put(job)
-        yield env.timeout(T_CREATE)
+class Manager(Process):
+    def init(self, queue):
+        self.queue = queue
+
+    async def run(self):
+        while True:
+            job = Job()
+            print(f"manager creates {job} at {self._env.now}")
+            await self.queue.put(job)
+            await self.timeout(T_CREATE)
 ```
 
--   `coder` process
+-   `Coder` process
 
 ```{.py data-file=simple_interaction.py}
-def coder(env, queue):
-    while True:
-        print(f"coder waits at {env.now}")
-        job = yield queue.get()
-        print(f"coder gets {job} at {env.now}")
-        yield env.timeout(job.duration)
-        print(f"code completes {job} at {env.now}")
+class Coder(Process):
+    def init(self, queue):
+        self.queue = queue
+
+    async def run(self):
+        while True:
+            print(f"coder waits at {self._env.now}")
+            job = await self.queue.get()
+            print(f"coder gets {job} at {self._env.now}")
+            await self.timeout(job.duration)
+            print(f"code completes {job} at {self._env.now}")
 ```
 
 -   Set up and run
@@ -107,9 +119,9 @@ def coder(env, queue):
 ```{.py data-file=simple_interaction.py}
 if __name__ == "__main__":
     env = Environment()
-    queue = Store(env)
-    env.process(manager(env, queue))
-    env.process(coder(env, queue))
+    queue = Queue(env)
+    Manager(env, queue)
+    Coder(env, queue)
     env.run(until=T_SIM)
 ```
 
@@ -177,16 +189,20 @@ class Job:
         self.duration = random.uniform(*T_JOB)
 ```
 
--   `manager` waits a random time before creating the next job
+-   `Manager` waits a random time before creating the next job
     -   Format time to two decimal places for readability
 
 ```{.py data-file=uniform_interaction.py}
-def manager(env, queue):
-    while True:
-        job = Job()
-        print(f"manager creates {job} at {env.now:.2f}")
-        yield queue.put(job)
-        yield env.timeout(random.uniform(*T_CREATE))
+class Manager(Process):
+    def init(self, queue):
+        self.queue = queue
+
+    async def run(self):
+        while True:
+            job = Job()
+            print(f"manager creates {job} at {self._env.now:.2f}")
+            await self.queue.put(job)
+            await self.timeout(random.uniform(*T_CREATE))
 ```
 
 -   Always initialize the random number generator to ensure reproducibility
@@ -256,7 +272,7 @@ def rand_job_duration():
     return random.lognormvariate(T_JOB_MEAN, T_JOB_STD)
 ```
 
--   Corresponding changes to `Job` and `manager`
+-   Corresponding changes to `Job` and `Manager`
 
 ```{.py data-file=random_interaction.py}
 class Job:
@@ -264,13 +280,17 @@ class Job:
         self.id = next(Job._next_id)
         self.duration = rand_job_duration()
 
-def manager(env, queue):
-    while True:
-        job = Job()
-        t_delay = rand_job_arrival()
-        print(f"manager creates {job} at {env.now:.2f} waits for {t_delay:.2f}")
-        yield queue.put(job)
-        yield env.timeout(t_delay)
+class Manager(Process):
+    def init(self, queue):
+        self.queue = queue
+
+    async def run(self):
+        while True:
+            job = Job()
+            t_delay = rand_job_arrival()
+            print(f"manager creates {job} at {self._env.now:.2f} waits for {t_delay:.2f}")
+            await self.queue.put(job)
+            await self.timeout(t_delay)
 ```
 
 -   Results
@@ -322,7 +342,7 @@ class Params:
 ```
 
 -   Define another class to store the entire simulation
-    -   Derive from SimPy `Environment`
+    -   Derive from `asimpy` `Environment`
     -   Store simulation parameters as `.params`
     -   May have other structures (e.g., a log to record output)
     -   Give it a `.result()` method that returns simulation result (e.g., the log)
@@ -340,26 +360,31 @@ class Simulation(Environment):
         return {"log": self.log}
 ```
 
--   All of the simulation process generator functions take an instance of the simulation class as an argument
-    -   `sim.whatever` for elements of the SimPy `Environment`
-    -   `sim.params.whatever` for parameters
+-   All simulation processes are `Process` subclasses that access the simulation via `self._env`
 
 ```{.py data-file=introduce_structure.py}
-def coder(sim):
+class CoderProcess(Process):
     """Simulate a single coder."""
 
-    while True:
-        sim.log.append(f"{sim.now}: Is there any work?")
-        yield sim.timeout(sim.params.t_wait)
+    def init(self):
+        self.sim = self._env
+
+    async def run(self):
+        i = 0
+        while True:
+            self.sim.log.append({"time": self.sim.now, "message": f"loop {i}"})
+            i += 1
+            await self.timeout(self.sim.params.t_wait)
 ```
 
 -   Define a `Simulation.simulate` method that creates processes and runs the simulation
+    -   Instantiating a `Process` subclass registers and starts it automatically
     -   Can't call it `run` because we need that method from the parent class `Environment`
 
 ```{.py data-file=introduce_structure.py}
 class Simulation
     def simulate(self):
-        self.process(coder(self))
+        CoderProcess(self)
         self.run(until=self.params.t_sim)
 ```
 

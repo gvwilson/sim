@@ -5,11 +5,11 @@ from jobs import JobInterrupt
 
 
 class Interrupter(Actor):
-    def run(self):
+    async def run(self):
         while True:
-            yield self.sim.timeout(self.rand_t_arrival())
+            await self.timeout(self.rand_t_arrival())
             coder = choice(self.sim.coders)
-            coder.proc.interrupt(JobInterrupt(self.sim))
+            coder.interrupt(JobInterrupt(self.sim))
 
     def rand_t_arrival(self):
         return expovariate(1.0 / self.sim.params.t_interrupt_interval)

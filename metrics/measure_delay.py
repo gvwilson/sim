@@ -7,7 +7,7 @@ import json
 import polars as pl
 import plotly.express as px
 import random
-from simpy import Environment, Store
+from asimpy import Environment, Process, Queue
 import sys
 import util
 
@@ -26,13 +26,13 @@ class Simulation(Environment):
     def __init__(self):
         super().__init__()
         self.params = Params()
-        self.queue = Store(self)
+        self.queue = None
 
     def simulate(self):
         Job.reset()
-        self.queue = Store(self)
-        self.process(manager(self))
-        self.process(coder(self))
+        self.queue = Queue(self)
+        Manager(self)
+        Coder(self)
         self.run(until=self.params.t_sim)
 
     def result(self):
@@ -67,19 +67,27 @@ class Job:
         return {key: util.rnd(self, key) for key in self.SAVE_KEYS}
 
 
-def manager(sim):
-    while True:
-        job = Job(sim=sim)
-        yield sim.queue.put(job)
-        yield sim.timeout(sim.rand_job_arrival())
+class Manager(Process):
+    def init(self):
+        self.sim = self._env
+
+    async def run(self):
+        while True:
+            job = Job(sim=self.sim)
+            await self.sim.queue.put(job)
+            await self.timeout(self.sim.rand_job_arrival())
 
 
-def coder(sim):
-    while True:
-        job = yield sim.queue.get()
-        job.t_start = sim.now
-        yield sim.timeout(job.duration)
-        job.t_complete = sim.now
+class Coder(Process):
+    def init(self):
+        self.sim = self._env
+
+    async def run(self):
+        while True:
+            job = await self.sim.queue.get()
+            job.t_start = self.sim.now
+            await self.timeout(job.duration)
+            job.t_complete = self.sim.now
 
 
 if __name__ == "__main__":

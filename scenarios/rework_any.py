@@ -6,7 +6,7 @@ from dataclasses_json import dataclass_json
 from itertools import count
 import json
 import random
-from simpy import Environment, Store
+from asimpy import Environment, Process, Queue
 import sys
 import util
 
@@ -36,18 +36,18 @@ class Simulation(Environment):
 
     def simulate(self):
         Recorder.reset()
-        self.code_queue = Store(self)
-        self.test_queue = Store(self)
+        self.code_queue = Queue(self)
+        self.test_queue = Queue(self)
 
-        self.process(Manager(self).run())
+        Manager(self)
 
         for _ in range(self.params.n_coder):
-            self.process(Coder(self).run())
+            Coder(self)
 
         for _ in range(self.params.n_tester):
-            self.process(Tester(self).run())
+            Tester(self)
 
-        self.process(Monitor(self).run())
+        Monitor(self)
         self.run(until=self.params.t_sim)
 
     def result(self):
@@ -119,62 +119,86 @@ class Job(Recorder):
         self.t_end = []
 
 
-class Manager(Recorder):
-    def run(self):
+class Manager(Process):
+    def init(self):
+        self.sim = self._env
+        cls = self.__class__
+        self.id = next(Recorder._next_id[cls])
+        Recorder._all[cls].append(self)
+
+    async def run(self):
         while True:
             job = Job(sim=self.sim)
-            yield self.sim.code_queue.put(job)
-            yield self.sim.timeout(self.sim.rand_job_arrival())
+            await self.sim.code_queue.put(job)
+            await self.timeout(self.sim.rand_job_arrival())
 
 
-class Coder(Recorder):
+class Coder(Process):
     SAVE_KEYS = ["t_work"]
 
-    def __init__(self, sim):
-        super().__init__(sim)
+    def init(self):
+        self.sim = self._env
+        cls = self.__class__
+        self.id = next(Recorder._next_id[cls])
+        Recorder._all[cls].append(self)
         self.t_work = 0
 
-    def run(self):
+    def json(self):
+        return {key: util.rnd(self, key) for key in self.SAVE_KEYS}
+
+    async def run(self):
         while True:
-            job = yield self.sim.code_queue.get()
+            job = await self.sim.code_queue.get()
             with LogWork("code", self, job):
-                yield self.sim.timeout(job.duration)
-            yield self.sim.test_queue.put(job)
+                await self.timeout(job.duration)
+            await self.sim.test_queue.put(job)
 
 
-class Tester(Recorder):
+class Tester(Process):
     SAVE_KEYS = ["t_work"]
 
-    def __init__(self, sim):
-        super().__init__(sim)
+    def init(self):
+        self.sim = self._env
+        cls = self.__class__
+        self.id = next(Recorder._next_id[cls])
+        Recorder._all[cls].append(self)
         self.t_work = 0
 
-    def run(self):
+    def json(self):
+        return {key: util.rnd(self, key) for key in self.SAVE_KEYS}
+
+    async def run(self):
         while True:
-            job = yield self.sim.test_queue.get()
+            job = await self.sim.test_queue.get()
             with LogWork("test", self, job):
-                yield self.sim.timeout(job.duration)
+                await self.timeout(job.duration)
             if self.sim.rand_rework():
-                yield self.sim.code_queue.put(job)
+                await self.sim.code_queue.put(job)
             else:
                 job.t_complete = self.sim.now
 
 
-class Monitor(Recorder):
-    def run(self):
+class Monitor(Process):
+    def init(self):
+        self.sim = self._env
+        cls = self.__class__
+        self.id = next(Recorder._next_id[cls])
+        Recorder._all[cls].append(self)
+
+    async def run(self):
         all_queues = (("code", self.sim.code_queue), ("test", self.sim.test_queue))
         while True:
             now = self.sim.now
             for name, queue in all_queues:
-                length = len(queue.items)
+                length = len(queue._items)
                 self.sim.lengths.append({"time": now, "name": name, "length": length})
                 mean_age = (
                     0
                     if length == 0
-                    else sum((now - j.t_create) for j in queue.items) / length
+                    else sum((now - j.t_create) for j in queue._items) / length
                 )
                 self.sim.ages.append({"time": now, "name": name, "mean_age": mean_age})
-            yield self.sim.timeout(self.sim.params.t_monitor)
+            await self.timeout(self.sim.params.t_monitor)
 
 
 if __name__ == "__main__":

@@ -37,7 +37,7 @@ class Job:
         Job._all.append(self)
         self.id = next(Job._next_id)
         self.duration = sim.rand_job_duration()
-        self.t_create = sim.env.now
+        self.t_create = sim.now
         self.t_start = None
         self.t_complete = None
 
@@ -51,37 +51,44 @@ class Job:
     -   Yes, this is a design smell and we should fix it
 
 ```{.py data-file=measure_delay.py}
-@dataclass
 class Simulation(Environment):
     def __init__(self):
         super().__init__()
         self.params = Params()
-        self.queue = Store(self)
+        self.queue = None
 
     def simulate(self):
         Job.reset()
-        self.queue = Store(self.env)
-        self.env.process(manager(self))
-        self.env.process(coder(self))
-        self.env.run(until=self.params.t_sim)
+        self.queue = Queue(self)
+        Manager(self)
+        Coder(self)
+        self.run(until=self.params.t_sim)
 ```
 
--   `manager` and `coder` are straightforward
+-   `Manager` and `Coder` are `Process` subclasses using `async def run(self)`
 
 ```{.py data-file=measure_delay.py}
-def manager(sim):
-    while True:
-        job = Job(sim=sim)
-        yield sim.queue.put(job)
-        yield sim.env.timeout(sim.rand_job_arrival())
+class Manager(Process):
+    def init(self):
+        self.sim = self._env
+
+    async def run(self):
+        while True:
+            job = Job(sim=self.sim)
+            await self.sim.queue.put(job)
+            await self.timeout(self.sim.rand_job_arrival())
 
 
-def coder(sim):
-    while True:
-        job = yield sim.queue.get()
-        job.t_start = sim.env.now
-        yield sim.env.timeout(job.duration)
-        job.t_complete = sim.env.now
+class Coder(Process):
+    def init(self):
+        self.sim = self._env
+
+    async def run(self):
+        while True:
+            job = await self.sim.queue.get()
+            job.t_start = self.sim.now
+            await self.timeout(job.duration)
+            job.t_complete = self.sim.now
 ```
 
 -   Output with default parameters
@@ -131,10 +138,10 @@ if __name__ == "__main__":
     -   Delay: how long from job creation to job start?
     -   Throughput: how many jobs are completed per unit time?
     -   Utilization: how busy are the people on the team?
--   Use classes for processes instead of naked generators
+-   Use `Process` subclasses for actors instead of naked coroutines
     -   Gives us a place to store extra data *and* access it from outside
 -   `Recorder` base class creates unique per-class IDs and saves instances
-    -   A generalization of the machinery we build for the `Job` class above
+    -   A generalization of the machinery we built for the `Job` class above
     -   Reset IDs and object lists in between parameter sweeps
     -   Expect derived classes to define `SAVE_KEYS` to identify what to save as JSON
 
@@ -158,68 +165,81 @@ class Recorder:
         return {key: util.rnd(self, key) for key in self.SAVE_KEYS}
 ```
 
--   `Manager` doesn't really need to be a class, but consistency makes code easier to understand
+-   `Manager` is a `Process` subclass; `init()` sets up recorder tracking
 
 ```{.py data-file=four_metrics.py}
-class Manager(Recorder):
-    def run(self):
+class Manager(Process):
+    def init(self):
+        self.sim = self._env
+        cls = self.__class__
+        self.id = next(Recorder._next_id[cls])
+        Recorder._all[cls].append(self)
+
+    async def run(self):
         while True:
             job = Job(sim=self.sim)
-            yield self.sim.queue.put(job)
-            yield self.sim.timeout(self.sim.rand_job_arrival())
+            await self.sim.queue.put(job)
+            await self.timeout(self.sim.rand_job_arrival())
 ```
 
 -   `Coder` keeps track of how much time it has spent working
 
 ```{.py data-file=four_metrics.py}
-class Coder(Recorder):
+class Coder(Process):
     SAVE_KEYS = ["t_work"]
 
-    def __init__(self, sim):
-        super().__init__(sim)
+    def init(self):
+        self.sim = self._env
+        cls = self.__class__
+        self.id = next(Recorder._next_id[cls])
+        Recorder._all[cls].append(self)
         self.t_work = 0
 
-    def run(self):
+    async def run(self):
         while True:
-            job = yield self.sim.queue.get()
+            job = await self.sim.queue.get()
             job.t_start = self.sim.now
-            yield self.sim.timeout(job.duration)
+            await self.timeout(job.duration)
             job.t_complete = self.sim.now
             self.t_work += job.t_complete - job.t_start
 ```
 
 -   `Monitor` records the length of the queue every few ticks
-    -   SimPy `Store` keeps items in a list-like object `queue.items`
+    -   `asimpy` `Queue` keeps items in the private list `queue._items`
 
 ```{.py data-file=four_metrics.py}
-class Monitor(Recorder):
-    def run(self):
+class Monitor(Process):
+    def init(self):
+        self.sim = self._env
+        # …recorder setup…
+
+    async def run(self):
         while True:
             self.sim.lengths.append(
-                {"time": self.sim.now, "length": len(self.sim.queue.items)}
+                {"time": self.sim.now, "length": len(self.sim.queue._items)}
             )
-            yield self.sim.timeout(self.sim.params.t_monitor)
+            await self.timeout(self.sim.params.t_monitor)
 ```
 
--   `Simulation` creates instances *and* calls their `.run()` methods
+-   `Simulation` instantiates `Process` subclasses (which start automatically)
     -   After resetting all the recording
 
 ```{.py data-file=four_metrics.py}
-class Simulation:
+class Simulation(Environment):
     # …as before…
-    def run(self):
+    def simulate(self):
         Recorder.reset()
-        self.queue = Store(self.env)
-        self.env.process(Manager(self).run())
-        self.env.process(Coder(self).run())
-        self.env.process(Monitor(self).run())
-        self.env.run(until=self.params.t_sim)
+        self.queue = Queue(self)
+        Manager(self)
+        Coder(self)
+        Monitor(self)
+        self.run(until=self.params.t_sim)
 ```
 
 -   Report results
 
 ```{.py data-file=four_metrics.py}
-class Simulation:
+class Simulation(Environment):
     # …as before…
     def result(self):
         return {

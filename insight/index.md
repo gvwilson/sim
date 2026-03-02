@@ -6,18 +6,18 @@
 
 -   Combine pieces from previous chapters and clean up a little
 -   A generic `Actor` as parent for coders, managers, testers, etc.
-    -   Constructor calls a lifecycle method `post_init` for extra initialization
-    -   Saves the process in case we do want to interrupt it
-    -   Automatically schedules the process to be run
+    -   Extends `Process` so that asimpy manages scheduling automatically
+    -   The `init()` lifecycle method handles recorder setup and calls `post_init()` for subclass-specific setup
     -   Provides a `.log` method for recording events
 
-```{.py data-file=base.py}
-class Actor(Recorder):
-    def __init__(self, sim):
-        super().__init__(sim)
+```{.py data-file=actor.py}
+class Actor(Process):
+    def init(self):
+        self.sim = self._env
+        cls = self.__class__
+        self.id = next(Recorder._next_id[cls])
+        Recorder._all[cls].append(self)
         self.post_init()
-        proc = self.run()
-        self.sim.process(proc)
 
     def post_init(self):
         pass

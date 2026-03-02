@@ -7,7 +7,7 @@ from itertools import count
 import json
 import plotly.express as px
 import random
-from simpy import Environment, Store
+from asimpy import Environment, Process, Queue
 import sys
 import util
 
@@ -27,15 +27,15 @@ class Simulation(Environment):
     def __init__(self):
         super().__init__()
         self.params = Params()
-        self.queue = Store(self)
+        self.queue = None
         self.lengths = []
 
     def simulate(self):
         Recorder.reset()
-        self.queue = Store(self)
-        self.process(Manager(self).run())
-        self.process(Coder(self).run())
-        self.process(Monitor(self).run())
+        self.queue = Queue(self)
+        Manager(self)
+        Coder(self)
+        Monitor(self)
         self.run(until=self.params.t_sim)
 
     def result(self):
@@ -82,37 +82,55 @@ class Job(Recorder):
         self.t_complete = None
 
 
-class Manager(Recorder):
-    def run(self):
+class Manager(Process):
+    def init(self):
+        self.sim = self._env
+        cls = self.__class__
+        self.id = next(Recorder._next_id[cls])
+        Recorder._all[cls].append(self)
+
+    async def run(self):
         while True:
             job = Job(sim=self.sim)
-            yield self.sim.queue.put(job)
-            yield self.sim.timeout(self.sim.rand_job_arrival())
+            await self.sim.queue.put(job)
+            await self.timeout(self.sim.rand_job_arrival())
 
 
-class Coder(Recorder):
+class Coder(Process):
     SAVE_KEYS = ["t_work"]
 
-    def __init__(self, sim):
-        super().__init__(sim)
+    def init(self):
+        self.sim = self._env
+        cls = self.__class__
+        self.id = next(Recorder._next_id[cls])
+        Recorder._all[cls].append(self)
         self.t_work = 0
 
-    def run(self):
+    def json(self):
+        return {key: util.rnd(self, key) for key in self.SAVE_KEYS}
+
+    async def run(self):
         while True:
-            job = yield self.sim.queue.get()
+            job = await self.sim.queue.get()
             job.t_start = self.sim.now
-            yield self.sim.timeout(job.duration)
+            await self.timeout(job.duration)
             job.t_complete = self.sim.now
             self.t_work += job.t_complete - job.t_start
 
 
-class Monitor(Recorder):
-    def run(self):
+class Monitor(Process):
+    def init(self):
+        self.sim = self._env
+        cls = self.__class__
+        self.id = next(Recorder._next_id[cls])
+        Recorder._all[cls].append(self)
+
+    async def run(self):
         while True:
             self.sim.lengths.append(
-                {"time": self.sim.now, "length": len(self.sim.queue.items)}
+                {"time": self.sim.now, "length": len(self.sim.queue._items)}
             )
-            yield self.sim.timeout(self.sim.params.t_monitor)
+            await self.timeout(self.sim.params.t_monitor)
 
 
 if __name__ == "__main__":

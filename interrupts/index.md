@@ -21,44 +21,47 @@ class Simulation(Environment):
         return random.expovariate(1.0 / self.params.t_interrupt_interval)
 ```
 
--   But we need a way to get at the coder's process (i.e., the generator) in order to interrupt it
-    -   The `Coder` instance is something we've built around the generator
-    -   `Environment.process(…)` returns the generator, so we can store that
+-   In asimpy, `Process` objects can be interrupted directly
+    -   No need to store a separate process handle
+    -   Coders are stored in a list so the interrupter can reach them
 
 ```{.py .python data-file=discard.py}
 class Simulation(Environment):
     def simulate(self):
-        # …queue, manager, and monitor as before…
-
-        self.process(Interrupter(self).run())
+        # …queue and manager as before…
+        Interrupter(self)
 
         self.coders = []
         for _ in range(self.params.n_coder):
             coder = Coder(self)
-            coder.proc = self.process(coder.run())
             self.coders.append(coder)
 
         self.run(until=self.params.t_sim)
 ```
 
--   Our new `Interrupter` reaches inside a coder to get its process
+-   `Interrupter` calls `.interrupt(cause)` directly on the `Process` object
+    -   Pass `None` as the cause when there is no associated data
 
 ```{.py data-file=discard.py}
-class Interrupter(Recorder):
-    def run(self):
+class Interrupter(Process):
+    def init(self):
+        self.sim = self._env
+        # …recorder setup…
+
+    async def run(self):
         while True:
-            yield self.sim.timeout(self.sim.rand_interrupt_arrival())
+            await self.timeout(self.sim.rand_interrupt_arrival())
             coder = random.choice(self.sim.coders)
-            coder.proc.interrupt()
+            coder.interrupt(None)
 ```
 
 <div class="callout" markdown="1">
 
--   When we call `proc.interrupt()`, SimPy raises an `Interrupt` exception inside the generator
+-   When we call `process.interrupt(cause)`, asimpy raises an `Interrupt` exception inside the coroutine
 -   But it can only do this while the framework is running, *not* while the process is running
     -   Because only one thing runs at a time
 -   So the exception is only raised when the process interacts with the environment
-    -   I.e., at `queue.get()`, `timeout()`, or other `yield` points
+    -   I.e., at `queue.get()`, `timeout()`, or other `await` points
 
 </div>
 
@@ -66,15 +69,21 @@ class Interrupter(Recorder):
     -   Not realistic, but it gives us a chance to learn about interrupts
 
 ```{.py data-file=discard.py}
-from simpy import Interrupt
+from asimpy import Interrupt
 
-class Coder(Recorder):
-    def run(self):
+class Coder(Process):
+    def init(self):
+        self.sim = self._env
+        # …recorder setup…
+        self.n_interrupt = 0
+        self.t_work = 0
+
+    async def run(self):
         while True:
             try:
-                job = yield self.sim.queue.get()
+                job = await self.sim.queue.get()
                 job.t_start = self.sim.now
-                yield self.sim.timeout(job.duration)
+                await self.timeout(job.duration)
                 job.t_end = self.sim.now
                 self.t_work += job.t_end - job.t_start
             except Interrupt:
@@ -116,20 +125,24 @@ class JobInterrupt(Job):
 ```
 
 -   `Manager` creates `JobRegular`, `Interrupter` creates `JobInterrupt`
--   Note that `Interrupter` passes the new job to `.interrupt()` so that it becomes the exception's `.cause`
+-   Note that `Interrupter` passes the new job directly to `.interrupt()` so that it becomes the exception's `.cause`
 
 ```{.py data-file=interrupts.py}
-class Interrupter(Recorder):
-    def run(self):
+class Interrupter(Process):
+    def init(self):
+        self.sim = self._env
+        # …recorder setup…
+
+    async def run(self):
         while True:
-            yield self.sim.timeout(self.sim.rand_interrupt_arrival())
+            await self.timeout(self.sim.rand_interrupt_arrival())
             coder = random.choice(self.sim.coders)
-            coder.proc.interrupt(JobInterrupt(self.sim))
+            coder.interrupt(JobInterrupt(self.sim))
 ```
 
 -   It took several tries to get the `Coder` right
--   The problem is that interrupts can occur whenever the coder interacts with SimPy
-    -   So if the coder does anything with SimPy in the `except` block,
+-   The problem is that interrupts can occur whenever the coder interacts with asimpy
+    -   So if the coder does anything with asimpy in the `except` block,
         we can have an interrupt while we're handling an interrupt
 -   Solution is to implement a [state machine](g:state-machine)
     1.  No work, so get a new job from the coding queue.
@@ -138,29 +151,30 @@ class Interrupter(Recorder):
 -   If an interrupt occurs:
     -   Add some time to the current job *if we actually started it*
     -   Push the new job on the stack
-    -   Note: the new job arrives as the `Interrupt` exception's cause
+    -   Note: the new job arrives as the `Interrupt` exception's `.cause`
 
 ```{.py data-file=interrupts.py}
-class Coder(Recorder):
-    def __init__(self, sim):
-        super().__init__(sim)
-        self.proc = None
+class Coder(Process):
+    def init(self):
+        self.sim = self._env
+        # …recorder setup…
+        self.t_work = 0
         self.stack = []
 
-    def run(self):
+    async def run(self):
         while True:
             started = None
             try:
                 # No work in hand, so get a new job.
                 if len(self.stack) == 0:
-                    job = yield self.sim.code_queue.get()
+                    job = await self.sim.code_queue.get()
                     job.start()
                     self.stack.append(job)
                 # Current job is incomplete, so try to finish it.
                 elif self.stack[-1].done < self.stack[-1].duration:
                     job = self.stack[-1]
                     started = self.sim.now
-                    yield self.sim.timeout(job.duration - job.done)
+                    await self.timeout(job.duration - job.done)
                     job.done = job.duration
                 # Current job is complete.
                 else:
@@ -184,14 +198,14 @@ class Coder(Recorder):
 ## Decomposing Jobs
 
 -   Design has two parts:
-    -   Treat interrupts as high-priority jobs
+    -   Treat interrupts as high-priority jobs placed in the coder's personal queue
     -   Break regular jobs into short fragments so that interrupts are handled promptly (but not immediately)
 -   Define three priorities:
     -   High: interrupt
     -   Medium: fragments of regular job
     -   Low: regular jobs
 
-```{.py data-file=decompose.py}
+```{.py data-file=decomp.py}
 class Priority:
     HIGH = 0
     MEDIUM = 1
@@ -200,12 +214,11 @@ class Priority:
 
 -   Generic `Job` has a few [lifecycle methods](g:lifecycle-method) for child classes to override
     -   `Job.start` is called when work starts on a job
-    -   `Job.complete` is called when the job is completed
+    -   `Job.complete` is called when the job is completed; returns a parent job to re-queue, or `None`
     -   `Job.is_complete` tells us whether the job has been completed or not
     -   `Job.needs_decomp` tells us whether the job needs to be decomposed
--   We will explain `sim.do_nothing()` shortly
 
-```{.py data-file=decompose.py}
+```{.py data-file=decomp.py}
 class Job(Recorder):
     def __init__(self, sim, priority):
         super().__init__(sim)
@@ -219,7 +232,7 @@ class Job(Recorder):
 
     def complete(self):
         self.t_complete = self.sim.now
-        return self.sim.do_nothing()
+        return None
 
     def is_complete(self):
         return self.t_complete is not None
@@ -235,7 +248,7 @@ class Job(Recorder):
 
 -   `JobInterrupt` is the simplest child class
 
-```{.py data-file=decompose.py}
+```{.py data-file=decomp.py}
 class JobInterrupt(Job):
     def __init__(self, sim):
         super().__init__(sim, Priority.HIGH)
@@ -246,7 +259,7 @@ class JobInterrupt(Job):
     -   If this job isn't complete *and* the time required is greater than the decomposition threshold
     -   The latter parameter is another completely arbitrary number
 
-```{.py data-file=decompose.py}
+```{.py data-file=decomp.py}
 class JobRegular(Job):
     def __init__(self, sim):
         super().__init__(sim, Priority.LOW)
@@ -259,11 +272,11 @@ class JobRegular(Job):
 -   `JobFragment` is the most complex
     -   Duration is specified by its creator (part of the total time required by a regular job)
     -   And it has a reference to a placeholder that keeps track of undone fragments
--   When then fragment is completed, it checks to see if it is the last one in its group
-    -   If so, it bumps the priority of the completed job to medium and puts it back in the coder's queue
-    -   If not, it does nothing
+-   When the fragment is completed, it checks to see if it is the last one in its group
+    -   If so, it bumps the priority of the completed job to medium and returns it to be re-queued
+    -   If not, it returns `None`
 
-```{.py data-file=decompose.py}
+```{.py data-file=decomp.py}
 class JobFragment(Job):
     def __init__(self, coder, placeholder, duration):
         super().__init__(coder.sim, Priority.MEDIUM)
@@ -272,43 +285,53 @@ class JobFragment(Job):
         self.duration = duration
 
     def complete(self):
-        super().complete()
+        self.t_complete = self.sim.now
         self.placeholder.count -= 1
         if self.placeholder.count == 0:
-            self.placeholder.job.complete()
-            self.placeholder.job.priority = Priority.MEDIUM
-            return self.coder.queue.put(self.placeholder.job)
-        else:
-            return self.sim.do_nothing()
+            parent = self.placeholder.job
+            parent.t_complete = self.sim.now
+            parent.priority = Priority.MEDIUM
+            return parent
+        return None
 ```
 
--   When `.complete` wants to put the original (regular) job back in the coder's queue,
-    it would be natural to call `yield self.code.queue.put(…)`
--   But what if it doesn't?
--   Solution:
-    -   `.complete` always returns something that can be yielded
-    -   Either "put this job in queue" *or* "wait for 0 ticks"
+-   When `.complete()` returns a parent job, the coder puts it back in the priority queue
+-   The coder always `await`s the result explicitly — no need for a "do nothing" placeholder event
 
-```{.py data-file=decompose.py}
-class Simulation(Environment):
-    def do_nothing(self):
-        return self.timeout(0)
-```
-
--   `Coder.run` gets a job from the general "new work" queue or from its priority queue
-    -   Gives preference to the latter so that interrupts and fragments are done before regular work
-    -   Always yields result of `job.complete()`
-
-```{.py data-file=decompose.py}
-    def run(self):
+```{.py data-file=decomp.py}
+    async def run(self):
         while True:
-            job = yield from self.get()
+            job = await self.get()
             job.start()
             if job.needs_decomp():
-                yield from self.decompose(job)
+                await self.decompose(job)
             elif not job.is_complete():
-                yield self.sim.timeout(job.duration)
-                yield job.complete()
+                await self.timeout(job.duration)
+                parent = job.complete()
+                if parent is not None:
+                    await self.queue.put(parent)
+                    self.notify_work()
+```
+
+-   Two-queue selection uses the notification pattern instead of `yield (event1 | event2)`
+    -   Each coder holds a `_work_event` that producers trigger when adding to either queue
+    -   The `get()` method checks queues synchronously before waiting
+
+```{.py data-file=decomp.py}
+    def notify_work(self):
+        """Signal that work may be available."""
+        if self._work_event is not None and not self._work_event._triggered:
+            self._work_event.succeed()
+
+    async def get(self):
+        """Get next job, preferring personal priority queue over shared queue."""
+        while True:
+            if not self.queue.is_empty():
+                return await self.queue.get()
+            if not self.sim.code_queue.is_empty():
+                return await self.sim.code_queue.get()
+            self._work_event = Event(self.sim)
+            await self._work_event
 ```
 
 -   To decompose a job:
@@ -316,15 +339,33 @@ class Simulation(Environment):
     -   Create a placeholder to keep track of them and the original job
     -   Put the fragments in the coder's priority queue
 
-```{.py data-file=decompose.py}
-    def decompose(self, job):
+```{.py data-file=decomp.py}
+    async def decompose(self, job):
         size = self.sim.params.t_decomposition
         num = int(job.duration / size)
         extra = job.duration - (num * size)
         durations = [extra, *[size for _ in range(num)]]
         placeholder = Placeholder(job=job, count=len(durations))
         for d in durations:
-            yield self.queue.put(JobFragment(self, placeholder, d))
+            await self.queue.put(JobFragment(self, placeholder, d))
+        self.notify_work()
+```
+
+-   The interrupter puts high-priority jobs directly into the coder's personal queue
+    -   No process-level interrupt needed
+
+```{.py data-file=decomp.py}
+class Interrupter(Process):
+    def init(self):
+        self.sim = self._env
+        # …recorder setup…
+
+    async def run(self):
+        while True:
+            await self.timeout(self.sim.rand_interrupt_arrival())
+            coder = random.choice(self.sim.coders)
+            await coder.queue.put(JobInterrupt(self.sim))
+            coder.notify_work()
 ```
 
 -   So is this better than using interrupts?

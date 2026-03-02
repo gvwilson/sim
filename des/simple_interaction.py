@@ -1,7 +1,7 @@
 """Simple interaction between manager and coder."""
 
 from itertools import count
-from simpy import Environment, Store
+from asimpy import Environment, Process, Queue
 
 T_CREATE = 6
 T_JOB = 8
@@ -19,26 +19,34 @@ class Job:
         return f"job-{self.id}"
 
 
-def manager(env, queue):
-    while True:
-        job = Job()
-        print(f"manager creates {job} at {env.now}")
-        yield queue.put(job)
-        yield env.timeout(T_CREATE)
+class Manager(Process):
+    def init(self, queue):
+        self.queue = queue
+
+    async def run(self):
+        while True:
+            job = Job()
+            print(f"manager creates {job} at {self._env.now}")
+            await self.queue.put(job)
+            await self.timeout(T_CREATE)
 
 
-def coder(env, queue):
-    while True:
-        print(f"coder waits at {env.now}")
-        job = yield queue.get()
-        print(f"coder gets {job} at {env.now}")
-        yield env.timeout(job.duration)
-        print(f"code completes {job} at {env.now}")
+class Coder(Process):
+    def init(self, queue):
+        self.queue = queue
+
+    async def run(self):
+        while True:
+            print(f"coder waits at {self._env.now}")
+            job = await self.queue.get()
+            print(f"coder gets {job} at {self._env.now}")
+            await self.timeout(job.duration)
+            print(f"code completes {job} at {self._env.now}")
 
 
 if __name__ == "__main__":
     env = Environment()
-    queue = Store(env)
-    env.process(manager(env, queue))
-    env.process(coder(env, queue))
+    queue = Queue(env)
+    Manager(env, queue)
+    Coder(env, queue)
     env.run(until=T_SIM)

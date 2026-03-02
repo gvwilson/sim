@@ -47,6 +47,10 @@
       {
         "time": 0,
         "message": "loop 0"
+      },
+      {
+        "time": 20,
+        "message": "loop 1"
       }
     ]
   },

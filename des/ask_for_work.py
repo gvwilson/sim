@@ -1,18 +1,22 @@
 """Ask for work at regular intervals."""
 
-from simpy import Environment
+from asimpy import Environment, Process
 
 T_SIM = 30
 T_WAIT = 8
 
 
-def coder(env):
-    while True:
-        print(f"{env.now}: Is there any work?")
-        yield env.timeout(T_WAIT)
+class Coder(Process):
+    def init(self):
+        self.sim = self._env
+
+    async def run(self):
+        while True:
+            print(f"{self.sim.now}: Is there any work?")
+            await self.timeout(T_WAIT)
 
 
 if __name__ == "__main__":
     env = Environment()
-    env.process(coder(env))
+    Coder(env)
     env.run(until=T_SIM)

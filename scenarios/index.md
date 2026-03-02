@@ -49,7 +49,7 @@
     -   Longest job first
     -   Shortest job first
 -   Implement by:
-    -   Replacing `Store` with `PriorityStore`
+    -   Using `Queue(self, priority=True)` instead of a plain `Queue`
     -   Adding `__lt__` to `Job` for comparison
     -   Actual comparison depends on policy
 
@@ -132,21 +132,22 @@ class Simulation(Environment):
 
     def simulate(self):
         # …as before…
-        self.test_queue = Store(self)
+        self.test_queue = Queue(self)
         for _ in range(self.params.n_tester):
-            self.process(Tester(self).run())
+            Tester(self)
 
-class Tester(Recorder):
-    def __init__(self, sim):
-        super().__init__(sim)
+class Tester(Process):
+    def init(self):
+        self.sim = self._env
+        # …recorder setup…
         self.t_work = 0
 
-    def run(self):
+    async def run(self):
         while True:
-            job = yield self.sim.test_queue.get()
-            yield self.sim.timeout(job.duration)
+            job = await self.sim.test_queue.get()
+            await self.timeout(job.duration)
             if self.sim.rand_rework():
-                yield self.sim.code_queue.put(job)
+                await self.sim.code_queue.put(job)
             else:
                 job.t_complete = self.sim.now
 ```
@@ -155,70 +156,75 @@ class Tester(Recorder):
 -   All jobs needing rework go back in the same queue as new work
     -   And are handled in arrival order, i.e., not given priority
 -   But this isn't realistic
--   Give each `Coder` its own queue
+-   Give each `Coder` its own rework queue
 
 ```{.py data-file=rework_same.py}
-class Coder(Recorder):
-    def __init__(self, sim):
-        # …as before…
-        self.queue = Store(self.sim)
+class Coder(Process):
+    def init(self):
+        self.sim = self._env
+        # …recorder setup…
+        self.rework_queue = Queue(self.sim)
+        self._work_event = None
 ```
 
 -   Have testers give work back to the coder who did the work
     -   Need to add a `coder_id` field to jobs to keep track of this
+    -   Call `notify_work()` so the coder stops waiting and checks its rework queue
 
 ```{.py data-file=rework_same.py}
-class Tester(Recorder):
-    def run(self):
+class Tester(Process):
+    async def run(self):
         while True:
-            job = yield self.sim.test_queue.get()
+            job = await self.sim.test_queue.get()
             assert job.coder_id is not None
-            yield self.sim.timeout(job.duration)
+            await self.timeout(job.duration)
             if self.sim.rand_rework():
-                yield self.sim.coders[job.coder_id].queue.put(job)
+                coder = self.sim.coders[job.coder_id]
+                await coder.rework_queue.put(job)
+                coder.notify_work()
             else:
                 job.t_complete = self.sim.now
 ```
 
--   Now the hard part: coders selecting jobs
+-   Now the hard part: coders selecting jobs from two queues
 -   Put it in a method of its own
--   And use `yield from` to yield its results back to SimPy
+-   Use the notification pattern: wait on a shared event rather than yielding two queue requests at once
 
 ```{.py data-file=rework_same.py}
-class Coder(Recorder):
-    def run(self):
+class Coder(Process):
+    async def run(self):
         while True:
-            job = yield from self.get()
-            yield self.sim.timeout(job.duration)
-            yield self.sim.test_queue.put(job)
+            job = await self.get()
+            await self.timeout(job.duration)
+            await self.sim.test_queue.put(job)
 ```
 
 -   So how does `Coder.get(…)` work?
-    -   Create *but do not immediately `yield`* a request for an item from each queue
-    -   `yield` the combination of those items using `|` (a short form for `simpy.AnyOf`)
-    -   `result` is dictionary-like object whose keys are the requests
-        and whose values are the items that we got
-    -   If we got something from our own queue, take that
-    -   If not, take what we got from the shared queue
--   Important: we have to cancel the other request or we can't make another one from that queue
-    -   Yes, this took a while to figure out
-    -   And yes, it's safe to cancel a request that wasn't satisfied
+    -   Check the rework queue first (personal work takes priority)
+    -   Then check the shared code queue for new work
+    -   If both are empty, wait on a notification event
+    -   Producers call `notify_work()` to wake us up when work arrives
 
 ```{.py data-file=rework_same.py}
-    def get(self):
-        new_req = self.sim.code_queue.get()
-        rework_req = self.queue.get()
-        result = yield (new_req | rework_req)
-        if (len(result.events) == 2) or (rework_req in result):
-            new_req.cancel()
-            job = result[rework_req]
-            assert job.coder_id == self.id
-        else:
-            rework_req.cancel()
-            job = result[new_req]
-            assert job.coder_id is None
-            job.coder_id = self.id
-        return job
+    def notify_work(self):
+        """Signal that work may be available."""
+        if self._work_event is not None and not self._work_event._triggered:
+            self._work_event.succeed()
+
+    async def get(self):
+        """Get next job, preferring rework queue over shared queue."""
+        while True:
+            if not self.rework_queue.is_empty():
+                job = await self.rework_queue.get()
+                assert job.coder_id == self.id
+                return job
+            if not self.sim.code_queue.is_empty():
+                job = await self.sim.code_queue.get()
+                assert job.coder_id is None
+                job.coder_id = self.id
+                return job
+            self._work_event = Event(self.sim)
+            await self._work_event
 ```
 
 -   We can now build a graph showing the [transition probabilities](g:transition-probability)

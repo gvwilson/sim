@@ -6,7 +6,7 @@ from dataclasses_json import dataclass_json
 from itertools import count
 import json
 import random
-from simpy import Environment, Interrupt, Store
+from asimpy import Environment, Interrupt, Process, Queue
 import sys
 import util
 
@@ -35,16 +35,15 @@ class Simulation(Environment):
 
     def simulate(self):
         Recorder.reset()
-        self.queue = Store(self)
+        self.queue = Queue(self)
 
-        self.process(Manager(self).run())
-        self.process(Interrupter(self).run())
-        self.process(Monitor(self).run())
+        Manager(self)
+        Interrupter(self)
+        Monitor(self)
 
         self.coders = []
         for _ in range(self.params.n_coder):
             coder = Coder(self)
-            coder.proc = self.process(coder.run())
             self.coders.append(coder)
 
         self.run(until=self.params.t_sim)
@@ -98,37 +97,54 @@ class Job(Recorder):
         self.t_complete = None
 
 
-class Manager(Recorder):
-    def run(self):
+class Manager(Process):
+    def init(self):
+        self.sim = self._env
+        cls = self.__class__
+        self.id = next(Recorder._next_id[cls])
+        Recorder._all[cls].append(self)
+
+    async def run(self):
         while True:
             job = Job(self.sim)
-            yield self.sim.queue.put(job)
-            yield self.sim.timeout(self.sim.rand_job_arrival())
+            await self.sim.queue.put(job)
+            await self.timeout(self.sim.rand_job_arrival())
 
 
-class Interrupter(Recorder):
-    def run(self):
+class Interrupter(Process):
+    def init(self):
+        self.sim = self._env
+        cls = self.__class__
+        self.id = next(Recorder._next_id[cls])
+        Recorder._all[cls].append(self)
+
+    async def run(self):
         while True:
-            yield self.sim.timeout(self.sim.rand_interrupt_arrival())
+            await self.timeout(self.sim.rand_interrupt_arrival())
             coder = random.choice(self.sim.coders)
-            coder.proc.interrupt()
+            coder.interrupt(None)
 
 
-class Coder(Recorder):
+class Coder(Process):
     SAVE_KEYS = ["id", "n_interrupt", "t_work"]
 
-    def __init__(self, sim):
-        super().__init__(sim)
+    def init(self):
+        self.sim = self._env
+        cls = self.__class__
+        self.id = next(Recorder._next_id[cls])
+        Recorder._all[cls].append(self)
         self.n_interrupt = 0
         self.t_work = 0
-        self.proc = None
 
-    def run(self):
+    def json(self):
+        return {key: util.rnd(self, key) for key in self.SAVE_KEYS}
+
+    async def run(self):
         while True:
             try:
-                job = yield self.sim.queue.get()
+                job = await self.sim.queue.get()
                 job.t_start = self.sim.now
-                yield self.sim.timeout(job.duration)
+                await self.timeout(job.duration)
                 job.t_end = self.sim.now
                 self.t_work += job.t_end - job.t_start
             except Interrupt:
@@ -138,19 +154,25 @@ class Coder(Recorder):
             self.t_work += job.t_end - job.t_start
 
 
-class Monitor(Recorder):
-    def run(self):
+class Monitor(Process):
+    def init(self):
+        self.sim = self._env
+        cls = self.__class__
+        self.id = next(Recorder._next_id[cls])
+        Recorder._all[cls].append(self)
+
+    async def run(self):
         while True:
             now = self.sim.now
-            length = len(self.sim.queue.items)
+            length = len(self.sim.queue._items)
             self.sim.lengths.append({"time": now, "length": length})
             mean_age = (
                 0
                 if length == 0
-                else sum((now - j.t_create) for j in self.sim.queue.items) / length
+                else sum((now - j.t_create) for j in self.sim.queue._items) / length
             )
             self.sim.ages.append({"time": now, "mean_age": mean_age})
-            yield self.sim.timeout(self.sim.params.t_monitor)
+            await self.timeout(self.sim.params.t_monitor)
 
 
 if __name__ == "__main__":

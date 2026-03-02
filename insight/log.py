@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from simpy import Environment
+from asimpy import Environment
 
 
 @dataclass

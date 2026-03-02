@@ -6,7 +6,7 @@ from dataclasses_json import dataclass_json
 from itertools import count
 import json
 import random
-from simpy import Environment, Store
+from asimpy import Environment, Event, Process, Queue
 import sys
 import util
 
@@ -35,15 +35,14 @@ class Simulation(Environment):
 
     def simulate(self):
         Recorder.reset()
-        self.queue = Store(self)
-        self.process(Manager(self).run())
+        self.queue = Queue(self)
+        Manager(self)
 
         self.coders = []
         for _ in range(self.params.n_coder):
             self.coders.append(Coder(self))
-            self.process(self.coders[-1].run())
 
-        self.process(Monitor(self).run())
+        Monitor(self)
         self.run(until=self.params.t_sim)
 
     def result(self):
@@ -94,61 +93,86 @@ class Job(Recorder):
         self.t_complete = None
 
 
-class Manager(Recorder):
-    def run(self):
+class Manager(Process):
+    def init(self):
+        self.sim = self._env
+        cls = self.__class__
+        self.id = next(Recorder._next_id[cls])
+        Recorder._all[cls].append(self)
+
+    async def run(self):
         while True:
             job = Job(self.sim)
-            yield self.sim.queue.put(job)
-            yield self.sim.timeout(self.sim.rand_job_arrival())
+            await self.sim.queue.put(job)
+            for coder in self.sim.coders:
+                coder.notify_work()
+            await self.timeout(self.sim.rand_job_arrival())
 
 
-class Coder(Recorder):
+class Coder(Process):
     SAVE_KEYS = ["t_work"]
 
-    def __init__(self, sim):
-        super().__init__(sim)
+    def init(self):
+        self.sim = self._env
+        cls = self.__class__
+        self.id = next(Recorder._next_id[cls])
+        Recorder._all[cls].append(self)
         self.t_work = 0
-        self.queue = Store(self.sim)
+        self.own_queue = Queue(self.sim)
+        self._work_event = None
 
-    def run(self):
+    def json(self):
+        return {key: util.rnd(self, key) for key in self.SAVE_KEYS}
+
+    def notify_work(self):
+        """Signal that work may be available."""
+        if self._work_event is not None and not self._work_event._triggered:
+            self._work_event.succeed()
+
+    async def get(self):
+        """Get next job, preferring own integration queue over shared queue."""
         while True:
-            job = yield from self.get()
+            if not self.own_queue.is_empty():
+                return await self.own_queue.get()
+            if not self.sim.queue.is_empty():
+                return await self.sim.queue.get()
+            self._work_event = Event(self.sim)
+            await self._work_event
+
+    async def run(self):
+        while True:
+            job = await self.get()
             job.t_start = self.sim.now
-            yield self.sim.timeout(job.duration)
+            await self.timeout(job.duration)
             job.t_complete = self.sim.now
             self.t_work += job.t_complete - job.t_start
             if job.kind == "regular":
                 for coder in self.sim.coders:
-                    yield coder.queue.put(
+                    await coder.own_queue.put(
                         Job(self.sim, "integration", self.sim.params.t_integration)
                     )
-
-    def get(self):
-        new_req = self.sim.queue.get()
-        integrate_req = self.queue.get()
-        result = yield (new_req | integrate_req)
-        if (len(result.events) == 2) or (integrate_req in result):
-            new_req.cancel()
-            job = result[integrate_req]
-        else:
-            integrate_req.cancel()
-            job = result[new_req]
-        return job
+                    coder.notify_work()
 
 
-class Monitor(Recorder):
-    def run(self):
+class Monitor(Process):
+    def init(self):
+        self.sim = self._env
+        cls = self.__class__
+        self.id = next(Recorder._next_id[cls])
+        Recorder._all[cls].append(self)
+
+    async def run(self):
         while True:
-            length = len(self.sim.queue.items)
+            length = len(self.sim.queue._items)
             self.sim.lengths.append({"time": self.sim.now, "length": length})
             now = self.sim.now
             mean_age = (
                 0
                 if length == 0
-                else sum((now - j.t_create) for j in self.sim.queue.items) / length
+                else sum((now - j.t_create) for j in self.sim.queue._items) / length
             )
             self.sim.ages.append({"time": self.sim.now, "mean_age": mean_age})
-            yield self.sim.timeout(self.sim.params.t_monitor)
+            await self.timeout(self.sim.params.t_monitor)
 
 
 if __name__ == "__main__":

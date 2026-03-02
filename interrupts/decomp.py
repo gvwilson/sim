@@ -6,7 +6,7 @@ from dataclasses_json import dataclass_json
 from itertools import count
 import json
 import random
-from simpy import Environment, Store, PriorityStore
+from asimpy import Environment, Event, Process, Queue
 import sys
 import util
 
@@ -42,20 +42,16 @@ class Simulation(Environment):
         self.lengths = []
         self.ages = []
 
-    def do_nothing(self):
-        return self.timeout(0)
-
     def simulate(self):
         Recorder.reset()
-        self.code_queue = Store(self)
-        self.process(Manager(self).run())
+        self.code_queue = Queue(self)
+        Manager(self)
         self.coders = []
         for _ in range(self.params.n_coder):
             coder = Coder(self)
             self.coders.append(coder)
-            coder.proc = self.process(coder.run())
-        self.process(Interrupter(self).run())
-        self.process(Monitor(self).run())
+        Interrupter(self)
+        Monitor(self)
         self.run(until=self.params.t_sim)
 
     def result(self):
@@ -118,8 +114,9 @@ class Job(Recorder):
         self.t_start = self.sim.now
 
     def complete(self):
+        """Mark job complete; return parent job to re-queue, or None."""
         self.t_complete = self.sim.now
-        return self.sim.do_nothing()
+        return None
 
     def is_complete(self):
         return self.t_complete is not None
@@ -141,14 +138,14 @@ class JobFragment(Job):
         self.duration = duration
 
     def complete(self):
-        super().complete()
+        self.t_complete = self.sim.now
         self.placeholder.count -= 1
         if self.placeholder.count == 0:
-            self.placeholder.job.complete()
-            self.placeholder.job.priority = Priority.MEDIUM
-            return self.coder.queue.put(self.placeholder.job)
-        else:
-            return self.sim.do_nothing()
+            parent = self.placeholder.job
+            parent.t_complete = self.sim.now
+            parent.priority = Priority.MEDIUM
+            return parent
+        return None
 
 
 class JobInterrupt(Job):
@@ -174,75 +171,110 @@ class Placeholder:
     count: int
 
 
-class Manager(Recorder):
-    def run(self):
+class Manager(Process):
+    def init(self):
+        self.sim = self._env
+        cls = self.__class__
+        self.id = next(Recorder._next_id[cls])
+        Recorder._all[cls].append(self)
+
+    async def run(self):
         while True:
             job = JobRegular(self.sim)
-            yield self.sim.code_queue.put(job)
-            yield self.sim.timeout(self.sim.rand_job_arrival())
+            await self.sim.code_queue.put(job)
+            for coder in self.sim.coders:
+                coder.notify_work()
+            await self.timeout(self.sim.rand_job_arrival())
 
 
-class Interrupter(Recorder):
-    def run(self):
+class Interrupter(Process):
+    def init(self):
+        self.sim = self._env
+        cls = self.__class__
+        self.id = next(Recorder._next_id[cls])
+        Recorder._all[cls].append(self)
+
+    async def run(self):
         while True:
-            yield self.sim.timeout(self.sim.rand_interrupt_arrival())
+            await self.timeout(self.sim.rand_interrupt_arrival())
             coder = random.choice(self.sim.coders)
-            yield coder.queue.put(JobInterrupt(self.sim))
+            await coder.queue.put(JobInterrupt(self.sim))
+            coder.notify_work()
 
 
-class Coder(Recorder):
+class Coder(Process):
     SAVE_KEYS = ["t_work"]
 
-    def __init__(self, sim):
-        super().__init__(sim)
-        self.queue = PriorityStore(self.sim)
+    def init(self):
+        self.sim = self._env
+        cls = self.__class__
+        self.id = next(Recorder._next_id[cls])
+        Recorder._all[cls].append(self)
+        self.queue = Queue(self.sim, priority=True)
         self.t_work = 0
+        self._work_event = None
 
-    def run(self):
+    def json(self):
+        return {key: util.rnd(self, key) for key in self.SAVE_KEYS}
+
+    def notify_work(self):
+        """Signal that work may be available."""
+        if self._work_event is not None and not self._work_event._triggered:
+            self._work_event.succeed()
+
+    async def get(self):
+        """Get next job, preferring personal priority queue over shared queue."""
         while True:
-            job = yield from self.get()
+            if not self.queue.is_empty():
+                return await self.queue.get()
+            if not self.sim.code_queue.is_empty():
+                return await self.sim.code_queue.get()
+            self._work_event = Event(self.sim)
+            await self._work_event
+
+    async def run(self):
+        while True:
+            job = await self.get()
             job.start()
             if job.needs_decomp():
-                yield from self.decompose(job)
+                await self.decompose(job)
             elif not job.is_complete():
-                yield self.sim.timeout(job.duration)
-                yield job.complete()
+                await self.timeout(job.duration)
+                parent = job.complete()
+                if parent is not None:
+                    await self.queue.put(parent)
+                    self.notify_work()
 
-    def decompose(self, job):
+    async def decompose(self, job):
         size = self.sim.params.t_decomposition
         num = int(job.duration / size)
         extra = job.duration - (num * size)
         durations = [extra, *[size for _ in range(num)]]
         placeholder = Placeholder(job=job, count=len(durations))
         for d in durations:
-            yield self.queue.put(JobFragment(self, placeholder, d))
-
-    def get(self):
-        new_req = self.sim.code_queue.get()
-        own_req = self.queue.get()
-        result = yield (new_req | own_req)
-        if (len(result.events) == 2) or (own_req in result):
-            new_req.cancel()
-            job = result[own_req]
-        else:
-            own_req.cancel()
-            job = result[new_req]
-        return job
+            await self.queue.put(JobFragment(self, placeholder, d))
+        self.notify_work()
 
 
-class Monitor(Recorder):
-    def run(self):
+class Monitor(Process):
+    def init(self):
+        self.sim = self._env
+        cls = self.__class__
+        self.id = next(Recorder._next_id[cls])
+        Recorder._all[cls].append(self)
+
+    async def run(self):
         while True:
             now = self.sim.now
-            length = len(self.sim.code_queue.items)
+            length = len(self.sim.code_queue._items)
             self.sim.lengths.append({"time": now, "length": length})
             mean_age = (
                 0
                 if length == 0
-                else sum((now - j.t_create) for j in self.sim.code_queue.items) / length
+                else sum((now - j.t_create) for j in self.sim.code_queue._items) / length
             )
             self.sim.ages.append({"time": now, "mean_age": mean_age})
-            yield self.sim.timeout(self.sim.params.t_monitor)
+            await self.timeout(self.sim.params.t_monitor)
 
 
 if __name__ == "__main__":

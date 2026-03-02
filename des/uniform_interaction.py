@@ -2,7 +2,7 @@
 
 from itertools import count
 import random
-from simpy import Environment, Store
+from asimpy import Environment, Process, Queue
 
 RNG_SEED = 98765
 T_CREATE = (6, 10)
@@ -21,27 +21,35 @@ class Job:
         return f"job-{self.id}"
 
 
-def manager(env, queue):
-    while True:
-        job = Job()
-        print(f"manager creates {job} at {env.now:.2f}")
-        yield queue.put(job)
-        yield env.timeout(random.uniform(*T_CREATE))
+class Manager(Process):
+    def init(self, queue):
+        self.queue = queue
+
+    async def run(self):
+        while True:
+            job = Job()
+            print(f"manager creates {job} at {self._env.now:.2f}")
+            await self.queue.put(job)
+            await self.timeout(random.uniform(*T_CREATE))
 
 
-def coder(env, queue):
-    while True:
-        print(f"coder waits at {env.now:.2f}")
-        job = yield queue.get()
-        print(f"coder gets {job} at {env.now:.2f}")
-        yield env.timeout(job.duration)
-        print(f"code completes {job} at {env.now:.2f}")
+class Coder(Process):
+    def init(self, queue):
+        self.queue = queue
+
+    async def run(self):
+        while True:
+            print(f"coder waits at {self._env.now:.2f}")
+            job = await self.queue.get()
+            print(f"coder gets {job} at {self._env.now:.2f}")
+            await self.timeout(job.duration)
+            print(f"code completes {job} at {self._env.now:.2f}")
 
 
 if __name__ == "__main__":
     random.seed(RNG_SEED)
     env = Environment()
-    queue = Store(env)
-    env.process(manager(env, queue))
-    env.process(coder(env, queue))
+    queue = Queue(env)
+    Manager(env, queue)
+    Coder(env, queue)
     env.run(until=T_SIM)

@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from dataclasses_json import dataclass_json
 import json
-from simpy import Environment
+from asimpy import Environment, Process
 import sys
 import util
 
@@ -18,6 +18,20 @@ class Params:
     t_wait: float = 8
 
 
+class CoderProcess(Process):
+    """Simulate a single coder."""
+
+    def init(self):
+        self.sim = self._env
+
+    async def run(self):
+        i = 0
+        while True:
+            self.sim.log.append({"time": self.sim.now, "message": f"loop {i}"})
+            i += 1
+            await self.timeout(self.sim.params.t_wait)
+
+
 class Simulation(Environment):
     """Complete simulation."""
 
@@ -27,21 +41,11 @@ class Simulation(Environment):
         self.log = []
 
     def simulate(self):
-        self.process(coder(self))
+        CoderProcess(self)
         self.run(until=self.params.t_sim)
 
     def result(self):
         return {"log": self.log}
-
-
-def coder(sim):
-    """Simulate a single coder."""
-
-    i = 0
-    while True:
-        sim.log.append({"time": sim.now, "message": f"loop {i}"})
-        i += 1
-        yield sim.timeout(sim.params.t_wait)
 
 
 if __name__ == "__main__":

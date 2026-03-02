@@ -1,7 +1,7 @@
 """Base simulator with all the features."""
 
 import json
-from simpy import Environment, Store
+from asimpy import Environment, Queue
 import sys
 import util
 
@@ -23,12 +23,9 @@ class Simulation(Environment):
         self.log = Log(env=self)
         self.coders = []
 
-    def do_nothing(self):
-        return self.timeout(0)
-
     def simulate(self):
         Recorder.reset()
-        self.code_queue = Store(self)
+        self.code_queue = Queue(self)
         Manager(self)
         Interrupter(self)
         QueueMonitor(self)

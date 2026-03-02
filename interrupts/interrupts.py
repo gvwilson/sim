@@ -6,7 +6,7 @@ from dataclasses_json import dataclass_json
 from itertools import count
 import json
 import random
-from simpy import Environment, Interrupt, Store
+from asimpy import Environment, Interrupt, Process, Queue
 import sys
 import util
 
@@ -38,15 +38,14 @@ class Simulation(Environment):
 
     def simulate(self):
         Recorder.reset()
-        self.code_queue = Store(self)
-        self.process(Manager(self).run())
+        self.code_queue = Queue(self)
+        Manager(self)
         self.coders = []
         for _ in range(self.params.n_coder):
             coder = Coder(self)
             self.coders.append(coder)
-            coder.proc = self.process(coder.run())
-        self.process(Interrupter(self).run())
-        self.process(Monitor(self).run())
+        Interrupter(self)
+        Monitor(self)
         self.run(until=self.params.t_sim)
 
     def result(self):
@@ -144,45 +143,62 @@ class JobInterrupt(Job):
         self.duration = self.sim.rand_interrupt_duration()
 
 
-class Manager(Recorder):
-    def run(self):
+class Manager(Process):
+    def init(self):
+        self.sim = self._env
+        cls = self.__class__
+        self.id = next(Recorder._next_id[cls])
+        Recorder._all[cls].append(self)
+
+    async def run(self):
         while True:
             job = JobRegular(self.sim)
-            yield self.sim.code_queue.put(job)
-            yield self.sim.timeout(self.sim.rand_job_arrival())
+            await self.sim.code_queue.put(job)
+            await self.timeout(self.sim.rand_job_arrival())
 
 
-class Interrupter(Recorder):
-    def run(self):
+class Interrupter(Process):
+    def init(self):
+        self.sim = self._env
+        cls = self.__class__
+        self.id = next(Recorder._next_id[cls])
+        Recorder._all[cls].append(self)
+
+    async def run(self):
         while True:
-            yield self.sim.timeout(self.sim.rand_interrupt_arrival())
+            await self.timeout(self.sim.rand_interrupt_arrival())
             coder = random.choice(self.sim.coders)
-            coder.proc.interrupt(JobInterrupt(self.sim))
+            coder.interrupt(JobInterrupt(self.sim))
 
 
-class Coder(Recorder):
+class Coder(Process):
     SAVE_KEYS = ["n_interrupt"]
 
-    def __init__(self, sim):
-        super().__init__(sim)
+    def init(self):
+        self.sim = self._env
+        cls = self.__class__
+        self.id = next(Recorder._next_id[cls])
+        Recorder._all[cls].append(self)
         self.t_work = 0
-        self.proc = None
         self.stack = []
 
-    def run(self):
+    def json(self):
+        return {key: util.rnd(self, key) for key in self.SAVE_KEYS}
+
+    async def run(self):
         while True:
             started = None
             try:
                 # No work in hand, so get a new job.
                 if len(self.stack) == 0:
-                    job = yield self.sim.code_queue.get()
+                    job = await self.sim.code_queue.get()
                     job.start()
                     self.stack.append(job)
                 # Current job is incomplete, so try to finish it.
                 elif self.stack[-1].done < self.stack[-1].duration:
                     job = self.stack[-1]
                     started = self.sim.now
-                    yield self.sim.timeout(job.duration - job.done)
+                    await self.timeout(job.duration - job.done)
                     job.done = job.duration
                 # Current job is complete.
                 else:
@@ -201,19 +217,25 @@ class Coder(Recorder):
                 self.stack.append(job)
 
 
-class Monitor(Recorder):
-    def run(self):
+class Monitor(Process):
+    def init(self):
+        self.sim = self._env
+        cls = self.__class__
+        self.id = next(Recorder._next_id[cls])
+        Recorder._all[cls].append(self)
+
+    async def run(self):
         while True:
             now = self.sim.now
-            length = len(self.sim.code_queue.items)
+            length = len(self.sim.code_queue._items)
             self.sim.lengths.append({"time": now, "length": length})
             mean_age = (
                 0
                 if length == 0
-                else sum((now - j.t_create) for j in self.sim.code_queue.items) / length
+                else sum((now - j.t_create) for j in self.sim.code_queue._items) / length
             )
             self.sim.ages.append({"time": now, "mean_age": mean_age})
-            yield self.sim.timeout(self.sim.params.t_monitor)
+            await self.timeout(self.sim.params.t_monitor)
 
 
 if __name__ == "__main__":
