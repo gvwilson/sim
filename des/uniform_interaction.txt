@@ -2,7 +2,7 @@ manager creates job-0 at 0.00
 coder waits at 0.00
 coder gets job-0 at 0.00
 manager creates job-1 at 8.36
-code completes job-0 at 8.52
+coder completes job-0 at 8.52
 coder waits at 8.52
 coder gets job-1 at 8.52
 manager creates job-2 at 14.73

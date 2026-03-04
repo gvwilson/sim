@@ -2,11 +2,11 @@ manager creates job-0 at 0
 coder waits at 0
 coder gets job-0 at 0
 manager creates job-1 at 6
-code completes job-0 at 8
+coder completes job-0 at 8
 coder waits at 8
 coder gets job-1 at 8
 manager creates job-2 at 12
-code completes job-1 at 16
+coder completes job-1 at 16
 coder waits at 16
 coder gets job-2 at 16
 manager creates job-3 at 18
